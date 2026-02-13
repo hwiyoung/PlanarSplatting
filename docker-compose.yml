@@ -1,0 +1,63 @@
+services:
+  planarsplat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: planarsplat:cu121
+    container_name: planarsplat
+    working_dir: /workspace/PlanarSplatting
+    stdin_open: true
+    tty: true
+    ipc: host
+    shm_size: "16g"
+    gpus: all
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PYTORCH_CUDA_ALLOC_CONF: "${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+      GRADIO_SERVER_NAME: 0.0.0.0
+      GRADIO_SERVER_PORT: "7860"
+      OUTPUT_ROOT: /workspace/PlanarSplatting/planarSplat_ExpRes
+    ports:
+      - "7860:7860"
+      - "${PLANARSPLAT_SYNC_VIEWER_PORT:-18080}:18080"
+    volumes:
+      - ./:/workspace/PlanarSplatting
+      - ./data:/workspace/PlanarSplatting/data
+      - ${PLANARSPLAT_OUTPUT_DIR:-./planarSplat_ExpRes}:/workspace/PlanarSplatting/planarSplat_ExpRes
+      - ${PLANARSPLAT_INPUT_DIR:-./user_inputs}:/workspace/PlanarSplatting/user_inputs
+      - ${PLANARSPLAT_HF_CACHE:-./.cache/huggingface}:/root/.cache/huggingface
+    command: bash
+  monitor:
+    image: planarsplat:cu121
+    container_name: planarsplat-monitor
+    working_dir: /workspace/PlanarSplatting
+    stdin_open: true
+    tty: true
+    ipc: host
+    shm_size: "16g"
+    gpus: all
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PYTORCH_CUDA_ALLOC_CONF: "${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+      TB_LOGDIR: /workspace/PlanarSplatting/planarSplat_ExpRes
+      TB_HOST: 0.0.0.0
+      TB_PORT: "6006"
+      TB_PUBLIC_PORT: ${PLANARSPLAT_TB_PORT:-6006}
+      INPUT_ROOT: /workspace/PlanarSplatting/user_inputs
+      OUTPUT_ROOT: /workspace/PlanarSplatting/planarSplat_ExpRes
+      OUTPUT_HOST_PATH: ${PLANARSPLAT_OUTPUT_DIR:-./planarSplat_ExpRes}
+      MAX_VGGT_IMAGES: ${PLANARSPLAT_MAX_VGGT_IMAGES:-24}
+      KEEP_ALIVE_AFTER_TRAIN: ${PLANARSPLAT_KEEP_ALIVE_AFTER_TRAIN:-1}
+      PLOT_FREQ: ${PLANARSPLAT_PLOT_FREQ:-200}
+      OVERWRITE_EXP: ${PLANARSPLAT_OVERWRITE_EXP:-0}
+      USE_PRECOMPUTED_DATA: ${PLANARSPLAT_USE_PRECOMPUTED_DATA:-0}
+      TRAIN_CMD: ${PLANARSPLAT_TRAIN_CMD:-}
+    ports:
+      - "${PLANARSPLAT_TB_PORT:-6006}:6006"
+    volumes:
+      - ./:/workspace/PlanarSplatting
+      - ./data:/workspace/PlanarSplatting/data
+      - ${PLANARSPLAT_OUTPUT_DIR:-./planarSplat_ExpRes}:/workspace/PlanarSplatting/planarSplat_ExpRes
+      - ${PLANARSPLAT_INPUT_DIR:-./user_inputs}:/workspace/PlanarSplatting/user_inputs
+      - ${PLANARSPLAT_HF_CACHE:-./.cache/huggingface}:/root/.cache/huggingface
+    command: bash tools/run_monitor.sh

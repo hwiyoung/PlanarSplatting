@@ -11,3 +11,5 @@ checkpoints/
 *build/
 tmp*/
 planarSplat_ExpRes/
+.cache/
+tools/sync_viewer_assets/three.min.js

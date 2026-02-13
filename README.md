@@ -43,6 +43,13 @@ pip install submodules/quaternion-utils
 pip install -e submodules/vggt/
 ```
 
+## 🐳 Docker Quick Start
+Docker / docker-compose based setup is available in:
+
+```
+DOCKER_QUICKSTART.md
+```
+
 ## 🎯 Quick Start
 You can run PlanarSpaltting with an interactive demo for your own data as follows:
 ```
@@ -174,4 +181,3 @@ PlanarSplatting is built on the top of several outstanding open-source projects.
 - [Metric3D v2](https://github.com/YvanYin/Metric3D/tree/main)
 - [Omnidata](https://github.com/EPFL-VILAB/omnidata)
 - [MoGe](https://github.com/microsoft/MoGe)
-

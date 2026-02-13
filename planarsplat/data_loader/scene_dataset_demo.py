@@ -78,6 +78,7 @@ class SceneDatasetDemo:
         self.img_res = img_res  # [height, width]
 
         image_paths = data['image_paths']
+        self.vggt_pcd_path = data.get('vggt_pcd_path', '')
         self.n_images = len(image_paths)
 
         # load camera
