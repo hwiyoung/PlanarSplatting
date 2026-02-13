@@ -15,7 +15,7 @@ from utils_demo.misc import is_video_file, save_frames_from_video
 from utils_demo.run_planarSplatting import run_planarSplatting
 
 
-def save_pointcloud_from_depth_data(data, out_path, stride=20):
+def save_pointcloud_from_depth_data(data, out_path, stride=6, filename='pcd_depth_from_data.ply'):
     required_keys = ['depth', 'intrinsics', 'extrinsics']
     if not isinstance(data, dict) or any(k not in data for k in required_keys):
         return ''
@@ -75,7 +75,7 @@ def save_pointcloud_from_depth_data(data, out_path, stride=20):
         if colors.shape[0] == points_world.shape[0]:
             pcd.colors = o3d.utility.Vector3dVector(colors)
 
-    pcd_path = os.path.join(out_path, 'pcd_vggt_downsampled.ply')
+    pcd_path = os.path.join(out_path, filename)
     o3d.io.write_point_cloud(pcd_path, pcd)
     return pcd_path
 
@@ -110,9 +110,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument("-d", "--data_path", "--data-path", dest="data_path", type=str, default='examples/living_room/images', help='path of input data')
     parser.add_argument("-o", "--out_path", type=str, default='planarSplat_ExpRes/demo', help='path of output dir')
-    parser.add_argument("-s", "--frame_step", type=int, default=1, help='sampling step for video extraction and VGGT image subsampling')
+    parser.add_argument(
+        "-s",
+        "--frame_step",
+        type=int,
+        default=1,
+        help='sampling step (images: VGGT subsampling, videos: extraction step; not applied twice)',
+    )
     parser.add_argument("--plot_freq", type=int, default=500, help='visualization frequency during optimization (also affects TensorBoard image update frequency)')
-    parser.add_argument("--depth_conf", type=float, default=2.0, help='depth confidence threshold of vggt')
+    parser.add_argument("--depth_conf", type=float, default=1.0, help='depth confidence threshold of vggt (lower => denser depth/point cloud)')
     parser.add_argument("--conf_path", type=str, default='utils_demo/demo.conf', help='path of configure file')
     parser.add_argument('--use_precomputed_data', default=False, action="store_true", help='use processed data from input images')
     parser.add_argument('--overwrite_exp', default=False, action="store_true", help='remove previous experiment folder with same expname before running')
@@ -123,6 +129,7 @@ if __name__ == '__main__':
         raise ValueError(f'The input data path {data_path} does not exist.')
     
     image_path = None
+    vggt_step = args.frame_step
     if os.path.isdir(data_path):
         image_path = data_path
     else:
@@ -131,6 +138,8 @@ if __name__ == '__main__':
             current_dir = os.path.dirname(absolute_video_path)
             image_path = os.path.join(current_dir, 'images')
             save_frames_from_video(data_path, image_path, args.frame_step)
+            # Video already subsampled while extracting frames; do not subsample again in VGGT.
+            vggt_step = 1
         else:
             raise ValueError(f'The input file {data_path} is not a video file.')
     assert image_path is not None, f"Can not find images or videos from {data_path}."
@@ -148,17 +157,18 @@ if __name__ == '__main__':
             if os.path.exists(pcd_guess):
                 data['vggt_pcd_path'] = pcd_guess
     else:
-        # run vggt (subsample images by frame_step to reduce VRAM usage)
-        data = run_vggt(image_path, out_path, step=args.frame_step, depth_conf_thresh=args.depth_conf)
+        # run vggt (subsample images to reduce VRAM usage)
+        data = run_vggt(image_path, out_path, step=vggt_step, depth_conf_thresh=args.depth_conf)
 
         # run metric3dv2
         _, normal_maps_list = extract_mono_geo_demo(data['color'], data['intrinsics'])
         data['normal'] = normal_maps_list
         torch.save(data, precomputed_data_path)
 
-    pcd_path = save_pointcloud_from_depth_data(data, out_path, stride=20)
-    if pcd_path:
-        data['vggt_pcd_path'] = pcd_path
+    sparse_pcd_path = save_pointcloud_from_depth_data(data, out_path, stride=6, filename='pcd_depth_from_data.ply')
+    if sparse_pcd_path:
+        data['depth_pcd_path'] = sparse_pcd_path
+    snapshot_pcd_path = data.get('vggt_pcd_path', '') or sparse_pcd_path
 
     # run planarSplatting
     '''
@@ -191,7 +201,7 @@ if __name__ == '__main__':
 
     run_planarSplatting(data=data, conf=conf)
     latest_run_dir = get_latest_run_dir(out_path, conf)
-    save_run_input_snapshot(latest_run_dir, data, pcd_path=pcd_path)
+    save_run_input_snapshot(latest_run_dir, data, pcd_path=snapshot_pcd_path)
 
 
     

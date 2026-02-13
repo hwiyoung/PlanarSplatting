@@ -9,19 +9,46 @@ import os
 import glob
 from tqdm import tqdm
 import open3d as o3d
+from pathlib import Path
+
+
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
+
+
+def _to_numpy(arr):
+    if torch.is_tensor(arr):
+        return arr.detach().cpu().numpy()
+    return np.asarray(arr)
+
+
+def _is_image_path(path_str):
+    path = Path(str(path_str))
+    return path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
+
+
+def _filter_image_paths(paths):
+    return [str(p) for p in paths if _is_image_path(p)]
+
 
 def run_vggt(img_dir, out_path, ckpt_path='checkpoints/model.pt', step=1, depth_conf_thresh=2.0):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    # bfloat16 is supported on Ampere GPUs (Compute Capability 8.0+) 
-    dtype = torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 8 else torch.float16
+    # bfloat16 is supported on Ampere GPUs (Compute Capability 8.0+)
+    if device == "cuda":
+        cc_major = torch.cuda.get_device_capability()[0]
+        dtype = torch.bfloat16 if cc_major >= 8 else torch.float16
+    else:
+        dtype = torch.float32
 
     if isinstance(img_dir, list):
-        img_name_list = img_dir[::step]
+        img_name_list = _filter_image_paths(img_dir)
+        img_name_list = img_name_list[::step]
     elif os.path.isdir(img_dir):
-        img_name_list = glob.glob(img_dir + '/*')
-        img_name_list = sorted(img_name_list)[::step]
+        all_files = glob.glob(os.path.join(img_dir, '*'))
+        img_name_list = sorted(_filter_image_paths(all_files))[::step]
     else:
         raise ValueError(f'The input img_dir {img_dir} should be either a list which consist of image paths or a directory which contain images.')
+    if len(img_name_list) == 0:
+        raise ValueError(f"No valid image files found in {img_dir}. Supported extensions: {sorted(IMAGE_EXTENSIONS)}")
     # Load and preprocess example imagess
     images = load_and_preprocess_images(img_name_list).to(device)
 
@@ -43,7 +70,7 @@ def run_vggt(img_dir, out_path, ckpt_path='checkpoints/model.pt', step=1, depth_
     median_depth_threshold = 2.0
 
     with torch.no_grad():
-        with torch.cuda.amp.autocast(dtype=dtype):
+        with torch.cuda.amp.autocast(enabled=(device == "cuda"), dtype=dtype):
             # Predict attributes including cameras, depth maps, and point maps.
             predictions = model(images)
 
@@ -60,8 +87,17 @@ def run_vggt(img_dir, out_path, ckpt_path='checkpoints/model.pt', step=1, depth_
             scale  = 1.0
             depth_masked = depth * (depth_conf>depth_conf_thresh).float()
 
-            depth_median_ = torch.median(depth_masked[depth_masked > 0.0]).cpu().item()
-            scale = median_depth_threshold / depth_median_
+            valid_depth = depth_masked[depth_masked > 0.0]
+            if valid_depth.numel() == 0:
+                print(f"[run_vggt][WARN] No valid depth after confidence masking (threshold={depth_conf_thresh}); using scale=1.0")
+                scale = 1.0
+            else:
+                depth_median_ = torch.median(valid_depth).cpu().item()
+                if (not np.isfinite(depth_median_)) or depth_median_ <= 1e-6:
+                    print(f"[run_vggt][WARN] Invalid depth median ({depth_median_}); using scale=1.0")
+                    scale = 1.0
+                else:
+                    scale = median_depth_threshold / depth_median_
             depth = depth * scale
             c2w[:,:3,3] = c2w[:,:3,3] * scale
             print(f'scale = {scale}')
@@ -70,8 +106,8 @@ def run_vggt(img_dir, out_path, ckpt_path='checkpoints/model.pt', step=1, depth_
             pcd_points = point_map_by_unprojection.reshape(-1, 3)[::20]
             pcd_colors = images.permute(0, 2, 3, 1).reshape(-1, 3)[::20]
             pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(pcd_points.detach().cpu().numpy())
-            pcd.colors = o3d.utility.Vector3dVector(pcd_colors.detach().cpu().numpy().clip(0.0, 1.0))
+            pcd.points = o3d.utility.Vector3dVector(_to_numpy(pcd_points))
+            pcd.colors = o3d.utility.Vector3dVector(_to_numpy(pcd_colors).clip(0.0, 1.0))
             pcd_path = os.path.join(out_path, 'pcd_vggt_downsampled.ply')
             o3d.io.write_point_cloud(pcd_path, pcd)
 

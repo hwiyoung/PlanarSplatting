@@ -50,6 +50,9 @@ Docker / docker-compose based setup is available in:
 DOCKER_QUICKSTART.md
 ```
 
+- Main workflow: `docker compose up planarsplat` (train + TensorBoard + sync viewer)
+- Manual debug shell: `docker compose run --rm --service-ports shell`
+
 ## 🎯 Quick Start
 You can run PlanarSpaltting with an interactive demo for your own data as follows:
 ```
