@@ -76,13 +76,13 @@ def plot_plane_img(trainer, plot_img_idx: int=0, prefix: str='', pcd_on: bool=Fa
 
     root_dir = trainer.plane_plots_dir
     os.makedirs(root_dir, exist_ok=True)
-    save_dir = os.path.join(root_dir, '%svis_%d_%d_cuda.jpg'%(prefix, trainer.iter_step, plot_img_idx))
-    plt.savefig(save_dir, pad_inches=0)
-    logger.info(f"saving to {save_dir}")
+    vis_save_dir = os.path.join(root_dir, '%svis_%d_%d_cuda.jpg'%(prefix, trainer.iter_step, plot_img_idx))
+    plt.savefig(vis_save_dir, pad_inches=0)
+    logger.info(f"saving to {vis_save_dir}")
 
-    save_dir = os.path.join(root_dir, 'debug_vis_%d_cuda.jpg'%(plot_img_idx))
-    plt.savefig(save_dir, pad_inches=0)
-    logger.info(f"saving to {save_dir}")
+    debug_save_dir = os.path.join(root_dir, 'debug_vis_%d_cuda.jpg'%(plot_img_idx))
+    plt.savefig(debug_save_dir, pad_inches=0)
+    logger.info(f"saving to {debug_save_dir}")
 
     plt.close()
 
@@ -94,6 +94,10 @@ def plot_plane_img(trainer, plot_img_idx: int=0, prefix: str='', pcd_on: bool=Fa
         save_dir = os.path.join(root_dir, 'debug_vis_%d_plane_surf.ply'%(plot_img_idx))
         logger.info(f'saving to {save_dir}')
         o3d.io.write_point_cloud(save_dir, points_plane_o3d)
+    return {
+        "vis_path": vis_save_dir,
+        "debug_path": debug_save_dir,
+    }
 
 def calculate_plane_depth(trainer):   
     trainer.net.regularize_plane_shape(False)     

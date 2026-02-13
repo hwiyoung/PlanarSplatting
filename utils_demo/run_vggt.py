@@ -57,11 +57,6 @@ def run_vggt(img_dir, out_path, ckpt_path='checkpoints/model.pt', step=1, depth_
             depth_conf = predictions['depth_conf'][0]  # N, h, w
             point_map_by_unprojection = unproject_depth_map_to_point_map(depth.squeeze(0)[..., None], extrinsic.squeeze(0), intrinsic.squeeze(0))
 
-            pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(point_map_by_unprojection.reshape(-1, 3)[::20])
-            pcd_path = os.path.join(out_path, 'pcd_vggt_downsampled.ply')
-            o3d.io.write_point_cloud(pcd_path, pcd)
-
             scale  = 1.0
             depth_masked = depth * (depth_conf>depth_conf_thresh).float()
 
@@ -70,6 +65,15 @@ def run_vggt(img_dir, out_path, ckpt_path='checkpoints/model.pt', step=1, depth_
             depth = depth * scale
             c2w[:,:3,3] = c2w[:,:3,3] * scale
             print(f'scale = {scale}')
+
+            point_map_by_unprojection = point_map_by_unprojection * scale
+            pcd_points = point_map_by_unprojection.reshape(-1, 3)[::20]
+            pcd_colors = images.permute(0, 2, 3, 1).reshape(-1, 3)[::20]
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(pcd_points.detach().cpu().numpy())
+            pcd.colors = o3d.utility.Vector3dVector(pcd_colors.detach().cpu().numpy().clip(0.0, 1.0))
+            pcd_path = os.path.join(out_path, 'pcd_vggt_downsampled.ply')
+            o3d.io.write_point_cloud(pcd_path, pcd)
 
             for i in tqdm(range(depth.shape[0]), total=depth.shape[0]):
                 depth_i = ((depth_conf[i]>depth_conf_thresh).float() * depth[i]).detach().cpu().squeeze().numpy()
@@ -87,4 +91,5 @@ def run_vggt(img_dir, out_path, ckpt_path='checkpoints/model.pt', step=1, depth_
         'image_paths': image_paths_list,
         'extrinsics': c2ws_list,  # c2w
         'intrinsics': intrinsics_list,
+        'vggt_pcd_path': pcd_path,
     }

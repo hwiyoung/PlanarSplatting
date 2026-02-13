@@ -1,0 +1,18 @@
+.pytest_cache
+.ruff_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+
+# runtime/output artifacts
+data
+planarSplat_ExpRes
+tmp_gradio
+user_inputs
+
+# editor/project files
+.idea
+.vscode
