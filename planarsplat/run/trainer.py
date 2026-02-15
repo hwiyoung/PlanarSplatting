@@ -80,6 +80,7 @@ class PlanarSplatTrainRunner():
         self.tb_camera_max_count = self.conf.get_int('train.tb_camera_max_count', default=64)
         self.tb_camera_frustum_ratio = self.conf.get_float('train.tb_camera_frustum_ratio', default=0.08)
         self.tb_trend_window = self.conf.get_int('train.tb_trend_window', default=200)
+        self.tb_image_freq = self.conf.get_int('train.tb_image_freq', default=500)
         self.tb_iter_hist = []
         self.tb_total_hist = []
         self.tb_writer = self._build_tb_writer()
@@ -161,6 +162,62 @@ class PlanarSplatTrainRunner():
             return
         vis_np = np.asarray(Image.open(vis_path).convert('RGB'))
         self.tb_writer.add_image('render/vis_compare', vis_np, iter, dataformats='HWC')
+
+    def _log_tb_images_detailed(self, iter):
+        """Log RGB/Depth/Normal images to TensorBoard at tb_image_freq.
+
+        Tag naming: ``compare/N_type`` groups all comparisons together in
+        TensorBoard's alphabetical sort.  Each image is a GT|Rendered
+        side-by-side pair so the user can compare without scrolling.
+        Individual ``gt/`` and ``render/`` channels are also logged for
+        zoom-in inspection.
+        """
+        if self.tb_writer is None:
+            return
+        self.net.eval()
+        try:
+            view_info = self.dataset.view_info_list[0]
+            raster_cam_w2c = view_info.raster_cam_w2c
+            with torch.no_grad():
+                rendered_rgb, allmap = self.net.planarSplat(view_info, iter, return_rgb=True)
+                depth = allmap[0:1].squeeze()
+                normal_local = allmap[2:5]
+                normal_global = (normal_local.permute(1, 2, 0) @ (raster_cam_w2c[:3, :3].T)).reshape(-1, 3)
+                normal_global = torch.nn.functional.normalize(normal_global, dim=-1)
+
+            import matplotlib.cm as cm
+
+            # --- RGB (NOTE: colors are random each forward pass, so RGB comparison is
+            # NOT meaningful for tracking quality. Use depth/normal instead.) ---
+            rgb_np = (rendered_rgb.permute(1, 2, 0).clamp(0, 1) * 255).cpu().numpy().astype(np.uint8)
+            gt_rgb_np = (view_info.rgb.reshape(self.H, self.W, 3) * 255).cpu().numpy().astype(np.uint8)
+            rgb_compare = np.concatenate([gt_rgb_np, rgb_np], axis=1)
+            self.tb_writer.add_image('compare/1_rgb', rgb_compare, iter, dataformats='HWC')
+            self.tb_writer.add_image('gt/rgb', gt_rgb_np, iter, dataformats='HWC')
+            self.tb_writer.add_image('render/rgb', rgb_np, iter, dataformats='HWC')
+
+            # --- Depth (viridis colormap, shared scale) ---
+            depth_np = depth.reshape(self.H, self.W).cpu().numpy()
+            gt_depth_np = view_info.mono_depth.reshape(self.H, self.W).cpu().numpy()
+            vmax = max(float(gt_depth_np[gt_depth_np > 0].max()) if (gt_depth_np > 0).any() else 1.0, 0.1)
+            depth_color = (cm.viridis(np.clip(depth_np / vmax, 0, 1))[:, :, :3] * 255).astype(np.uint8)
+            gt_depth_color = (cm.viridis(np.clip(gt_depth_np / vmax, 0, 1))[:, :, :3] * 255).astype(np.uint8)
+            depth_compare = np.concatenate([gt_depth_color, depth_color], axis=1)
+            self.tb_writer.add_image('compare/2_depth', depth_compare, iter, dataformats='HWC')
+            self.tb_writer.add_image('gt/depth', gt_depth_color, iter, dataformats='HWC')
+            self.tb_writer.add_image('render/depth', depth_color, iter, dataformats='HWC')
+
+            # --- Normal (color = (n+1)/2) ---
+            normal_np = normal_global.reshape(self.H, self.W, 3).cpu().numpy()
+            normal_color = ((normal_np + 1.0) / 2.0 * 255).clip(0, 255).astype(np.uint8)
+            gt_normal_np = torch.nn.functional.normalize(view_info.mono_normal_global, dim=-1).reshape(self.H, self.W, 3).cpu().numpy()
+            gt_normal_color = ((gt_normal_np + 1.0) / 2.0 * 255).clip(0, 255).astype(np.uint8)
+            normal_compare = np.concatenate([gt_normal_color, normal_color], axis=1)
+            self.tb_writer.add_image('compare/3_normal', normal_compare, iter, dataformats='HWC')
+            self.tb_writer.add_image('gt/normal', gt_normal_color, iter, dataformats='HWC')
+            self.tb_writer.add_image('render/normal', normal_color, iter, dataformats='HWC')
+        finally:
+            self.net.train()
 
     def _log_tb_mesh(self, iter, mesh, tag):
         if self.tb_writer is None or not self.tb_log_mesh:
@@ -453,6 +510,11 @@ class PlanarSplatTrainRunner():
                 if iter == self.max_total_iters:
                     progress_bar.close()
             
+            # ======================================= TB image logging (lightweight, separate from plot)
+            if iter > 0 and iter % self.tb_image_freq == 0:
+                with torch.no_grad():
+                    self._log_tb_images_detailed(iter)
+
             # ======================================= plot model outputs
             if self.do_vis and iter % self.plot_freq == 0:
                 self.net.regularize_plane_shape()
