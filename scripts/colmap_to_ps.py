@@ -19,7 +19,10 @@ Usage:
         --output_path planarSplat_ExpRes/seongsu \
         --use_precomputed --run_training
 
-    # MVS depth source (Phase 1)
+    # MVS depth+normal source (Phase 1)
+    # Loads depth from depth_maps/*.geometric.bin
+    # Loads normal from normal_maps/*.geometric.bin (COLMAP PatchMatch native)
+    # Falls back to finite-diff normal if normal_maps/ not available
     python scripts/colmap_to_ps.py \
         --colmap_path /path/to/colmap/output \
         --output_path planarSplat_ExpRes/seongsu_phase1 \
@@ -447,56 +450,92 @@ def convert(args):
     depth_source = getattr(args, 'depth_source', 'mono')
 
     if depth_source == 'mvs':
-        # ===== MVS depth path: load COLMAP geometric depth maps =====
+        # ===== MVS path: load COLMAP geometric depth AND normal maps =====
         stereo_dir = os.path.join(args.colmap_path, 'dense', 'stereo')
         depth_map_dir = os.path.join(stereo_dir, 'depth_maps')
+        normal_map_dir = os.path.join(stereo_dir, 'normal_maps')
         if not os.path.isdir(depth_map_dir):
             raise FileNotFoundError(
                 f"MVS depth maps not found at {depth_map_dir}. "
                 "Run COLMAP patch_match_stereo first.")
+        has_normal_maps = os.path.isdir(normal_map_dir)
+        if not has_normal_maps:
+            print("[WARN] MVS normal_maps dir not found, falling back to finite-diff normals")
 
         depth_maps_list = []
         normal_maps_list = []
         n_loaded = 0
         n_missing = 0
+        n_normal_native = 0
+        n_normal_fallback = 0
 
         for i, (img_path, intrinsic) in enumerate(tqdm(
                 zip(colmap_data['image_paths'], colmap_data['intrinsics']),
                 total=len(colmap_data['image_paths']),
-                desc="Loading MVS depth")):
+                desc="Loading MVS depth/normal")):
             image_name = os.path.basename(img_path)
-            geo_path = os.path.join(depth_map_dir, f'{image_name}.geometric.bin')
+            geo_depth_path = os.path.join(depth_map_dir, f'{image_name}.geometric.bin')
 
-            if not os.path.exists(geo_path):
+            tgt_h, tgt_w = colmap_data['color_images'][i].shape[:2]
+
+            if not os.path.exists(geo_depth_path):
                 print(f"[WARN] MVS depth not found for {image_name}, using zeros")
-                h, w = colmap_data['color_images'][i].shape[:2]
-                depth_maps_list.append(np.zeros((h, w), dtype=np.float32))
-                normal_maps_list.append(np.full((3, h, w), 0.5, dtype=np.float32))
+                depth_maps_list.append(np.zeros((tgt_h, tgt_w), dtype=np.float32))
+                normal_maps_list.append(np.full((3, tgt_h, tgt_w), 0.5, dtype=np.float32))
                 n_missing += 1
                 continue
 
-            depth = read_colmap_array(geo_path)  # (H_mvs, W_mvs)
+            depth = read_colmap_array(geo_depth_path)  # (H_mvs, W_mvs)
 
-            # Resize to target resolution if needed
-            tgt_h, tgt_w = colmap_data['color_images'][i].shape[:2]
+            # Resize depth to target resolution if needed
             if depth.shape != (tgt_h, tgt_w):
                 depth = cv2.resize(depth, (tgt_w, tgt_h),
                                    interpolation=cv2.INTER_NEAREST)
 
-            # Compute normal from depth
-            normal = depth_to_normal_cam(depth, intrinsic)  # (3, H, W) in [0,1]
+            # Load COLMAP native normal map (preferred) or fall back to finite-diff
+            geo_normal_path = os.path.join(normal_map_dir, f'{image_name}.geometric.bin')
+            if has_normal_maps and os.path.exists(geo_normal_path):
+                mvs_normal = read_colmap_array(geo_normal_path)  # (H_mvs, W_mvs, 3) [-1,1] not unit
+                # Resize to target resolution if needed
+                if mvs_normal.shape[:2] != (tgt_h, tgt_w):
+                    mvs_normal = cv2.resize(mvs_normal, (tgt_w, tgt_h),
+                                            interpolation=cv2.INTER_NEAREST)
+                # Normalize to unit vectors
+                mvs_norm = np.linalg.norm(mvs_normal, axis=-1, keepdims=True)
+                mvs_valid = (mvs_norm.squeeze() > 0.01) & (depth > 0)
+                mvs_normal = np.where(mvs_norm > 0.01, mvs_normal / mvs_norm, 0.0)
+                # Ensure normals point toward camera (z < 0), matching finite-diff convention
+                flip_mask = mvs_normal[:, :, 2] > 0
+                mvs_normal[flip_mask] *= -1
+                # Mask invalid pixels
+                mvs_normal[~mvs_valid] = 0.0
+                # Convert to PlanarSplatting format: (3, H, W) in [0, 1]
+                normal = mvs_normal.transpose(2, 0, 1).astype(np.float32)  # (3, H, W) [-1,1]
+                normal = (normal + 1.0) / 2.0  # [-1,1] → [0,1]
+                n_normal_native += 1
+            else:
+                # Fallback: derive normal from depth via finite differences
+                normal = depth_to_normal_cam(depth, intrinsic)  # (3, H, W) in [0,1]
+                n_normal_fallback += 1
 
             depth_maps_list.append(depth)
             normal_maps_list.append(normal)
             n_loaded += 1
 
-        print(f"[INFO] MVS depth loaded: {n_loaded} views, {n_missing} missing")
+        print(f"[INFO] MVS loaded: {n_loaded} views, {n_missing} missing")
+        print(f"[INFO] Normals: {n_normal_native} native MVS, {n_normal_fallback} finite-diff fallback")
         valid_coverages = []
-        for d in depth_maps_list:
+        normal_coverages = []
+        for d, n in zip(depth_maps_list, normal_maps_list):
             cov = 100 * (d > 0).sum() / d.size
             valid_coverages.append(cov)
+            # Normal valid = not [0.5, 0.5, 0.5] (which maps to [0,0,0] in [-1,1])
+            n_valid = np.abs(n - 0.5).sum(axis=0) > 0.01
+            normal_coverages.append(100 * n_valid.sum() / n_valid.size)
         print(f"[INFO] MVS depth coverage: mean={np.mean(valid_coverages):.1f}%, "
               f"min={np.min(valid_coverages):.1f}%, max={np.max(valid_coverages):.1f}%")
+        print(f"[INFO] MVS normal coverage: mean={np.mean(normal_coverages):.1f}%, "
+              f"min={np.min(normal_coverages):.1f}%, max={np.max(normal_coverages):.1f}%")
 
         # No scale alignment needed (MVS depth is absolute)
         depth_maps_aligned = depth_maps_list

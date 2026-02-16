@@ -46,6 +46,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-build-isolation "git+https://github.com/facebookresearch/pytorch3d.git@stable" && \
     pip install --no-build-isolation submodules/diff-rect-rasterization && \
     pip install --no-build-isolation submodules/quaternion-utils && \
-    pip install -e submodules/vggt/
+    pip install -e submodules/vggt/ && \
+    pip install "transformers>=4.45.0,<5.0.0" supervision pycocotools
 
 CMD ["bash"]
