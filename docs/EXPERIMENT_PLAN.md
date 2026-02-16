@@ -61,7 +61,9 @@ CLAUDE.md를 읽고, docs/EXPERIMENT_PLAN.md의 Phase 0-Setup을 진행해줘.
    - 체크포인트 → PLY export (Open3D headless, 데스크톱 GUI 띄우지 말 것)
    - --checkpoint, --color_by (normal/rgb), --export_ply
 3. scripts/evaluate.py
-   - 체크포인트 → PSNR, Depth MAE → JSON
+   - 체크포인트 → Depth MAE, Normal cos → JSON
+   - 기본 metrics: depth_mae, normal_cos (Phase 0~3-B)
+   - PSNR은 --enable_photo (Phase 3-C) 시에만 활성화 — color가 random이므로 그 전에는 계산하지 않음
    - --checkpoint, --metrics, --output, --compare_with
 4. 패키지 필요하면 Dockerfile에도 추가해줘
 
@@ -83,8 +85,9 @@ TensorBoard에 ssh 터널링으로 접속 가능한지 확인.
 | 지표 | Go | Retry | Switch |
 |------|-----|-------|--------|
 | 정합 이미지 | ≥ 100장 | 50~99 → 매칭 조정 | < 50 → Metashape |
-| PSNR | ≥ 20dB | 18~20 → iter 증가 | < 18 → 입력 변환 디버깅 |
-| 건물 형태 | PLY/웹뷰어에서 식별 가능 | 뭉개짐 → 초기화 조정 | — |
+| Depth MAE | ≤ 0.10 | 0.10~0.15 → iter 증가 | > 0.15 → 입력 변환 디버깅 |
+| Normal cos | ≥ 0.85 | 0.80~0.85 → iter 증가 | < 0.80 → 법선 유도 확인 |
+| 건물 형태 | Depth/Normal 렌더링에서 건물 윤곽+면 방향 식별 | 뭉개짐 → 초기화 조정 | — |
 
 **COLMAP 실행** (수십 분~수 시간 소요, 돌려놓고 다른 작업 가능):
 ```bash
@@ -112,7 +115,7 @@ COLMAP 출력을 그 형식으로 변환해줘:
 - --init_method colmap/vggt 플래그로 선택
 
 변환 완료 후 컨테이너 내부에서 학습 실행하고 evaluate.py, visualize_primitives.py로 결과 확인.
-렌더링 결과 이미지도 저장해줘 (RGB, Depth, Normal 각 2~3장).
+렌더링 결과 이미지도 저장해줘 (Depth, Normal 각 2~3장 + GT RGB 참고용).
 /results/phase0/REPORT.md를 EXPERIMENT_PLAN.md 하단의 REPORT 템플릿에 따라 작성해줘.
 CLAUDE.md 진행 상태 업데이트.
 ```
@@ -146,7 +149,7 @@ docs/EXPERIMENT_PLAN.md의 Phase 1을 진행해줘. 컨테이너 내부에서 �
 5. 패키지 필요하면 Dockerfile에도 추가
 
 학습(5000 iter) → evaluate.py로 Phase 0과 비교 → visualize (color_by normal) PLY export.
-렌더링 결과 이미지 저장 (RGB, Depth, Normal 각 2~3장, Phase 0과 비교 가능하게).
+렌더링 결과 이미지 저장 (Depth, Normal 각 2~3장 + GT RGB 참고용, Phase 0과 비교 가능하게).
 /results/phase1/REPORT.md 작성 (정량 지표 + 정성적 비교 이미지 포함).
 CLAUDE.md 진행 상태 업데이트.
 ```
@@ -198,7 +201,9 @@ docs/RESEARCH_CONTEXT.md의 "프리미티브 파라미터 전체 구조" 섹션�
 4. TensorBoard: L_sem, 클래스별 프리미티브 수(매 100 iter), Semantic vs GT(매 500 iter)
 5. visualize_primitives.py에 --color_by class (roof=빨강, wall=파랑, ground=회색)
 6. evaluate.py에 --metrics semantic_miou
-7. gradient check: torch.autograd.grad(L_sem, f_params) non-zero 확인
+7. gradient check:
+   - torch.autograd.grad(L_sem, f_params) non-zero 확인 (f_i에 gradient 전달됨)
+   - torch.autograd.grad(L_sem, R_params) == zero 확인 (L_sem이 R_i를 건드리지 않음 → Phase 3-A에서 L_mutual 고유 효과 근거)
 8. --enable_semantic 플래그로 기존 기능 보존
 9. 패키지 필요하면 Dockerfile에도 추가
 ```
@@ -213,16 +218,17 @@ docs/RESEARCH_CONTEXT.md의 "프리미티브 파라미터 전체 구조" 섹션�
 | 지표 | Go | Retry |
 |------|-----|-------|
 | mIoU | ≥ 0.50 | 0.30~0.50 → λ_s 조정 |
-| PSNR | Phase 1 대비 ≤ 5% 악화 | > 5% → λ_s 감소 |
+| Depth MAE | Phase 1 대비 ≤ 10% 악화 | > 10% → λ_s 감소 |
+| Normal cos | Phase 1 대비 ≤ 5% 악화 | > 5% → λ_s 감소 |
 
 **프롬프트:**
 ```
 docs/EXPERIMENT_PLAN.md의 Phase 2-C를 진행해줘. 컨테이너 내부에서 작업이야.
 
 --enable_semantic --lambda_sem 0.1로 5000 iter 학습.
-evaluate.py로 Phase 1과 비교 (psnr, depth_mae, normal_error, semantic_miou).
+evaluate.py로 Phase 1과 비교 (depth_mae, normal_cos, semantic_miou).
 visualize (color_by class) → PLY export.
-렌더링 결과 이미지 저장 (RGB, Depth, Normal, Semantic 각 2~3장).
+렌더링 결과 이미지 저장 (Depth, Normal, Semantic 각 2~3장 + GT RGB 참고용).
 웹 뷰어 또는 PLY에서 3D 클래스별 시각화 캡처도.
 /results/phase2/REPORT.md 작성 (정량 + 정성 이미지 포함).
 CLAUDE.md 진행 상태 업데이트.
@@ -274,14 +280,14 @@ docs/EXPERIMENT_PLAN.md의 Phase 3-B를 진행해줘. 컨테이너 내부에서 
 scripts/compare_ablation.py를 만들어줘 (여러 evaluation.json → 비교 표 CSV + 터미널 출력).
 
 순차 실행 (GPU 1개):
-- (a) none: Phase 2 결과 복사
+- (a) none: Phase 2-C checkpoint 복사
 - (b) full: ablation_full.yaml
 - (c) sem2geo: ablation_sem2geo.yaml
 - (d) geo2sem: ablation_geo2sem.yaml
 
 각각 evaluate.py 실행 후 compare_ablation.py로 비교 표.
 TensorBoard에서 4조건 동시 비교 설정도 알려줘.
-각 조건의 렌더링 결과 이미지 저장 (4조건 × RGB/Depth/Normal/Semantic).
+각 조건의 렌더링 결과 이미지 저장 (4조건 × Depth/Normal/Semantic + GT RGB 참고용).
 3D 클래스 시각화도 4조건 비교 (PLY 또는 웹 뷰어).
 /results/phase3/REPORT.md 작성 (ablation 표 + 비교 이미지 + 해석).
 CLAUDE.md 진행 상태 업데이트.
@@ -296,11 +302,11 @@ CLAUDE.md 진행 상태 업데이트.
 **입력:** Phase 3-B 완료 상태의 코드
 
 **실험 조건:**
-| 조건 | L_photo | L_mutual | 비교 대상 |
+| 조건 | L_photo | L_mutual | 비교 기준 |
 |------|---------|----------|-----------|
-| Phase 3-B (b) | 없음 | Full | 기존 core ablation 결과 |
-| 3-C-1 | 추가 | 없음 (λ_m=0) | L_photo만의 효과 |
-| 3-C-2 | 추가 | Full | L_photo + L_mutual 조합 효과 |
+| Phase 3-B (b) | 없음 | Full | (기존 core ablation 결과, 참고용) |
+| 3-C-1 | 추가 | 없음 (λ_m=0) | vs Phase 2-C (L_photo 없음, L_mutual 없음) |
+| 3-C-2 | 추가 | Full | vs 3-C-1 및 Phase 3-B(b) |
 
 **확인 사항:**
 - 3-C-1 vs Phase 2-C: L_photo 추가만으로 기하 지표(Depth MAE, Normal Error)가 개선되는가?
@@ -318,9 +324,11 @@ PlanarSplatting에 L_photo(RGB photometric loss)를 추가하는 실험이야.
 
 구현:
 1. color를 학습 가능 파라미터로 추가 (SH 계수 또는 RGB, 코드 구조에 맞게)
+   - color 초기화: SfM 포인트 색상에서 가져오거나, GT 이미지에서 투영하여 초기값 설정
+   - SH라면 0차만 초기화, RGB라면 nearest-neighbor projection
 2. L_photo = L1 or SSIM loss(rendered RGB, GT image) 구현
 3. --enable_photo --lambda_photo 플래그
-4. density control에서 color도 처리
+4. density control에서 color도 처리 (split→복사, prune→제거)
 
 실험:
 - 3-C-1: --enable_photo --lambda_photo 1.0 (L_mutual 없음)
@@ -376,16 +384,18 @@ YYYY-MM-DD
 ## 정량 지표
 | 지표 | 값 | 이전 Phase | 변화 |
 |------|-----|-----------|------|
-| PSNR | xx.x dB | xx.x dB | +x.x |
-| ... | | | |
+| Depth MAE | x.xxxx | x.xxxx | -x.xxxx |
+| Normal cos | x.xxxx | x.xxxx | +x.xxxx |
+| mIoU | x.xx (Phase 2+) | x.xx | +x.xx |
+| PSNR | xx.x dB (Phase 3-C only) | — | — |
 
 ## 정성적 결과
 (렌더링 이미지, 3D 시각화 캡처 등을 삽입)
 
 ### 렌더링 결과
-![RGB 렌더링](images/rgb_render.png)
 ![Depth 맵](images/depth_render.png)
 ![Normal 맵](images/normal_render.png)
+![GT RGB 참고](images/gt_rgb.png)
 
 ### 이전 Phase와 비교
 ![Phase 0 vs Phase 1 비교](images/comparison.png)

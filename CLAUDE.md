@@ -150,7 +150,7 @@ python scripts/evaluate.py --checkpoint path/to/latest.pth --compare_with prev_r
 
 ## 현재 진행 상태
 - [x] Phase 0-Setup: 모니터링 환경 구축
-- [ ] Phase 0: SfM/MVS 입력 확보
+- [x] Phase 0: SfM/MVS 입력 확보 (COLMAP 180장 정합, 100장 학습, Depth MAE=0.067, Normal cos=0.911)
 - [ ] Phase 1: MVS Depth Supervision 교체
 - [ ] Phase 2-A: 2D Segmentation 생성
 - [ ] Phase 2-B: 의미론적 헤드 구현
