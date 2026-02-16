@@ -84,9 +84,12 @@ PlanarSplatting/
 │   ├── demo.conf                        # 데모 전용 config override
 │   └── misc.py
 │
-├── scripts/                             # 모니터링/평가 스크립트 (Phase 0-Setup에서 생성)
+├── scripts/                             # 평가, 시각화, 데이터 변환 스크립트
 │   ├── visualize_primitives.py          # 체크포인트 → PLY export (CUDA 필요)
-│   └── evaluate.py                      # 체크포인트 → Depth MAE, Normal cos, PSNR → JSON
+│   ├── evaluate.py                      # 체크포인트 → Depth MAE, Normal cos, PSNR → JSON
+│   ├── render_views.py                  # 체크포인트 → RGB/Depth/Normal 이미지 렌더링
+│   ├── colmap_to_ps.py                  # COLMAP 출력 → PlanarSplatting input_data.pth 변환
+│   └── generate_segmentation.py         # Grounded SAM 2 + MVS normal → seg_maps 생성
 │
 ├── planarSplat_ExpRes/                  # 실험 결과 (볼륨 마운트)
 │   ├── demo/                            # 실험별 하위: exp_name/timestamp/
@@ -101,7 +104,7 @@ PlanarSplatting/
 ```
 
 ### 핵심 데이터 흐름
-1. **입력**: 이미지 → Metric3D(mono depth/normal) → SceneDatasetDemo(ViewInfo 리스트)
+1. **입력**: 이미지 → COLMAP SfM/MVS(depth, normal) → SceneDatasetDemo(ViewInfo 리스트)
 2. **학습**: PlanarSplatTrainRunner.train() → PlanarSplat_Network.forward() → CUDA rasterizer → allmap[7ch]
 3. **손실**: allmap → depth(ch0), normal(ch2-4) → metric_depth_loss + normal_loss → backward
 4. **밀도 제어**: net_wrapper.split_plane()/prune_small_plane() — 6 params 모두 동기 처리
@@ -152,11 +155,11 @@ python scripts/evaluate.py --checkpoint path/to/latest.pth --compare_with prev_r
 - [x] Phase 0-Setup: 모니터링 환경 구축
 - [x] Phase 0: SfM/MVS 입력 확보 (COLMAP 180장 정합, 100장 학습, Depth MAE=0.067, Normal cos=0.911)
 - [x] Phase 1: MVS Depth Supervision 교체 (Depth MAE=0.024, Normal cos=0.729 vs MVS GT)
-- [ ] Phase 2-A: 2D Segmentation 생성
+- [x] Phase 2-A: 2D Segmentation 생성 (MVS Hybrid: Grounded SAM + COLMAP MVS Normal, Go)
 - [ ] Phase 2-B: 의미론적 헤드 구현
 - [ ] Phase 2-C: L_sem 독립 학습
 - [ ] Phase 3-A: L_mutual 구현
-- [ ] Phase 3-B: Ablation 4조건 학습
+- [ ] Phase 3-B: Ablation 7조건 학습
 - [ ] Phase 3-C: L_photo 추가 실험 (선택적, core ablation 이후)
 - [ ] Phase 4: CityGML 변환 + 검증
 

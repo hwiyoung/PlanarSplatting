@@ -51,7 +51,7 @@ PlanarSplatting은 L_photo 없이 기하학적 손실(L_depth, L_normal)만으�
 ```
 L_depth  ──→ c_i, r_i, R_i      (깊이 정확도)
 L_normal ──→ R_i                  (법선 정확도)
-L_geo    ──→ c_i, r_i, R_i      (기하 정규화)
+L_geo    ──→ c_i, r_i, R_i      (기하 정규화: L_nc + L_planar + L_adj)
 L_sem    ──→ f_i                  (의미론 분류)
 L_mutual ──→ R_i + f_i           (★ 이 둘만 연결)
 ```
@@ -60,6 +60,15 @@ L_mutual ──→ R_i + f_i           (★ 이 둘만 연결)
 - **연결하는 것:** R_i(→법선 n_i)와 f_i(→클래스 확률 p_c). 이 두 파라미터만.
 - **연결하지 않는 것:** c_i(위치), r_i(크기), 기타. 이들은 L_mutual과 무관.
 - "양방향"이란: L_mutual의 gradient가 R_i 방향과 f_i 방향 둘 다로 흐른다는 뜻.
+
+---
+
+## L_sem (의미론적 분류 손실)
+
+CrossEntropyLoss(ignore_index=0)로, 렌더링된 의미론적 맵을 Grounded SAM 2 생성 GT와 비교.
+- 3D 프리미티브에 직접 f_i를 부여하므로, **여러 뷰에서 번갈아 L_sem을 최적화하면 멀티뷰 의미론적 일관성이 구조적으로 보장**된다.
+- 2D segmentation 오류가 있더라도 동일 프리미티브가 여러 뷰에서 L_sem을 받으므로 **다수결에 의해 오류 희석**.
+- L_mutual의 기하학-의미론 교차 검증이 추가적인 보정 역할.
 
 ---
 
@@ -82,17 +91,67 @@ L_photo 추가가 전체 품질을 높일 가능성은 있으므로, core ablati
 
 ---
 
+## L_geo (기하 정규화)
+
+프리미티브가 "건물다운" 기하학적 조건을 만족하도록 강제하는 정규화 항. 세 가지 하위항으로 구성된다.
+
+```
+L_geo = λ_p · L_planar + λ_a · L_adj + λ_nc · L_normal_consistency
+```
+
+### L_normal_consistency (법선 일관성)
+렌더링된 법선 맵이 깊이 맵으로부터 유도된 법선과 일치해야 한다는 제약. 깊이와 법선이 독립적으로 업데이트될 때 발생하는 모순을 방지. 2DGS, PGSR 등에서 검증된 기법.
+```
+L_nc = Σ_p [ 1 - n_render(p) · n_depth_derived(p) ]
+```
+- n_render: allmap[2:5] (rasterizer 출력)
+- n_depth_derived: allmap[0] (depth)에서 finite difference로 유도
+- **구현**: PyTorch 레벨, CUDA 수정 불필요 → Phase 2-B에서 구현
+
+### L_planar (평면성 제약)
+하나의 프리미티브에 속하는 모든 3D 점들이 실제로 하나의 평면 위에 놓여야 한다는 제약.
+```
+L_planar = Σ_i [ (1/|S_i|) · Σ_{x_j ∈ S_i} (n_i · x_j + d_i)² ]
+```
+- n_i · x_j + d_i: 점 x_j에서 프리미티브 i 평면까지의 부호 거리
+- 렌더링된 깊이 맵에서 역투영한 3D 점이 해당 프리미티브의 평면 방정식과 일치하는지 검증
+- **의존성**: 픽셀별 프리미티브 ID 필요 → CUDA rasterizer에 primitive ID 채널 추가 필요
+- **구현**: Phase 4에서 CUDA 수정 시 함께 구현
+
+### L_adj (인접 정합성)
+인접한 두 프리미티브가 만나는 경계에서 틈(gap)이나 격침(overlap)이 없어야 한다는 제약. CityGML은 건물이 닫힌 다면체를 형성하도록 요구.
+```
+L_adj = Σ_{(i,j) ∈ Neighbors} [ (1/|B_ij|) · Σ_{x_k ∈ B_ij} ( |n_i·x_k+d_i| + |n_j·x_k+d_j| )² ]
+```
+- B_ij: 프리미티브 i와 j의 경계 영역 점 집합
+- 인접성은 렌더링된 2D 맵에서 프리미티브 ID의 경계로 판단
+- **의존성**: L_planar와 동일 (픽셀별 프리미티브 ID 필요)
+- **구현**: Phase 4에서 CUDA 수정 시 함께 구현
+
+### 구현 단계 요약
+| 하위항 | Phase | CUDA 수정 | 비고 |
+|--------|-------|-----------|------|
+| L_normal_consistency | 2-B | 불필요 | allmap[0]과 allmap[2:5]에서 계산 |
+| L_planar | 4 | 필요 (primitive ID 채널) | val3dity 검증과 직결 |
+| L_adj | 4 | 필요 (primitive ID 채널) | CityGML 닫힌 다면체 요구 |
+
+※ allmap[6](distortion)은 별도의 floater 방지 정규화로, L_geo의 하위항은 아니지만 추가 사용 가능.
+※ `regularize_plane_shape()`은 반경 대칭화 hard constraint로, L_geo와 역할이 다름.
+
+---
+
 ## L_mutual 수식 및 Gradient 분석
 
 ### 수식
 ```
-L_mutual = Σ_i [ p_wall(i) · L_vert(n_i) + p_roof(i) · L_horiz(n_i) + p_ground(i) · L_horiz(n_i) ]
+L_mutual = Σ_i [ p_wall(i) · L_vert(n_i) + p_roof(i) · L_slope(n_i) + p_ground(i) · L_horiz(n_i) ]
 ```
 - p_c(i) = softmax(f_i)[c] : 프리미티브 i의 클래스 c 확률
 - n_i : R_i에서 유도된 법선 벡터
 - e_z = [0, 0, 1] : 수직(중력) 방향
-- L_vert(n) = (n · e_z)² : 법선이 수평이면 0 → 벽면에 적합
-- L_horiz(n) = 1 - (n · e_z)² : 법선이 수직이면 0 → 지붕/지면에 적합
+- L_vert(n) = (n · e_z)² : 법선이 수평이면 0 → 벽면에 적합 (벽 법선은 수평이어야)
+- L_horiz(n) = (1 - |n · e_z|)² : 법선이 수직이면 0 → 지면에 적합 (지면 법선은 수직이어야)
+- L_slope(n) : 인접 지붕면들 간의 경사 일관성 강제. 각도를 미리 고정하지 않고, 데이터로부터 학습된 분류 확률에 기반하여 적응적으로 정규화 → 비정형 건물에도 대응 가능
 
 ### Gradient 방향 1: ∂L_mutual/∂R_i (의미론 → 기하)
 "wall 확률이 높은 프리미티브의 법선을 수평으로 밀어라"
@@ -109,15 +168,20 @@ L_mutual = Σ_i [ p_wall(i) · L_vert(n_i) + p_roof(i) · L_horiz(n_i) + p_groun
 ```
 L_total = λ_d·L_depth + λ_n·L_normal + λ_g·L_geo + λ_s·L_sem + λ_m·L_mutual
 ```
+※ L_geo는 Phase 2-B에서 L_normal_consistency만 포함. L_planar, L_adj는 Phase 4(CUDA 수정 후) 추가.
 ※ L_photo는 기본 설계에서 미포함. "L_photo 포함 여부" 섹션 참조.
 
 ---
 
-## Warmup 전략
+## Warmup 전략 (Curriculum Learning)
 
-- iter < total/3 : λ_m = 0 (Θ_geo와 Θ_sem이 독립적으로 안정화)
-- iter ≥ total/3 : λ_m를 선형 증가 (안정화 후 커플링)
-- PCGrad/CAGrad 같은 gradient surgery 대신 시간적 분리로 충돌 회피
+학습 초기에 기하학과 의미론 모두 수렴하지 않은 상태에서 L_mutual을 활성화하면, 부정확한 의미론이 기하학을 오염시킬 수 있다. 시간적 분리로 이를 방지:
+
+- **초기 (0 ~ N/3):** λ_m = 0. L_depth + L_normal + L_geo로 기하 안정화, L_sem으로 의미론 대략 학습.
+- **중기 (N/3 ~ 2N/3):** λ_m를 0에서 목표값까지 점진적 증가. 상호 보강 시작.
+- **후기 (2N/3 ~ N):** λ_m 목표값 유지. 상호 보강 완전 작동.
+
+PCGrad/CAGrad 같은 gradient surgery 대신 시간 축 분리로 충돌 회피. 구현이 단순하면서 adaptive density control(split/prune)과 호환.
 
 ## Trivial Solution 방지
 - 위험: L_mutual 최소화를 위해 p_wall을 줄이는 것이 n_i를 고치는 것보다 쉬움 (semantic evasion)
@@ -128,14 +192,37 @@ L_total = λ_d·L_depth + λ_n·L_normal + λ_g·L_geo + λ_s·L_sem + λ_m·L_m
 
 ## Ablation 설계
 
+### Core Ablation (스케치 4.4.1 — 전체 접근법 검증)
+
+| 조건 | 손실 구성 | 의미론 헤드 | 검증하려는 것 |
+|------|----------|-----------|-------------|
+| (a) Geo Only | L_depth + L_normal + L_geo | 없음 | 기하 전용 baseline |
+| (b) Sem Only | L_depth + L_normal + L_sem | 있음 | L_geo 없이 의미론만 추가 효과 |
+| (c) Independent | L_depth + L_normal + L_geo + L_sem (λ_m=0) | 있음 | 독립 최적화 baseline |
+| (d) Joint | L_depth + L_normal + L_geo + L_sem + L_mutual | 있음 | 양방향 상호 보강 효과 |
+
+핵심 비교: **(c) vs (d)** — 유일한 차이가 L_mutual이므로, (d)가 (c)보다 우수하면 양방향 상호 보강 효과 직접 입증.
+추가 비교: (a) vs (c) — 의미론 헤드 추가가 기하에 미치는 영향 (간접 효과).
+
+### Directional Ablation (방향별 메커니즘 검증)
+
 | 조건 | 설정 | 검증하려는 것 |
 |------|------|-------------|
-| (a) No mutual | λ_m = 0 | baseline |
-| (b) Full mutual | λ_m with warmup | 양방향 상호 보강 효과 |
-| (c) Sem→Geo only | softmax(f_i).detach() in L_mutual | R_i만 gradient 받음. 의미론→기하 단방향 |
-| (d) Geo→Sem only | n_i.detach() in L_mutual | f_i만 gradient 받음. 기하→의미론 단방향 |
+| (e) Sem→Geo only | softmax(f_i).detach() in L_mutual | R_i만 gradient. 의미론→기하 단방향 |
+| (f) Geo→Sem only | n_i.detach() in L_mutual | f_i만 gradient. 기하→의미론 단방향 |
 
-기대: (b)가 (a) 대비 기하+의미론 모두 개선, (b)의 개선 > (c) 단독 + (d) 단독 → 시너지
+핵심 비교: **(d) vs (e) vs (f)** — 양방향이 각 단방향보다 우수한지. (d)의 개선 > (e) + (f)이면 시너지.
+
+### Warmup Ablation
+
+| 조건 | 설정 | 검증하려는 것 |
+|------|------|-------------|
+| (d) | warmup 적용 (기본) | 3단계 curriculum |
+| (d-nowarmup) | warmup 없이 λ_m 즉시 적용 | warmup의 필요성 |
+
+### 기대 및 대응
+
+기대: (d)가 (c) 대비 기하+의미론 모두 개선, (d)의 개선 > (e) 단독 + (f) 단독 → 시너지
 
 결과가 기대와 다를 경우:
 - 효과 없음 → "조건과 한계" 분석 (MVS depth가 이미 충분히 정확하여 L_mutual의 추가 보강 여지가 적음 등)

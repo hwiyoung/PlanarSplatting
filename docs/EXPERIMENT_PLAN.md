@@ -27,6 +27,54 @@ Phase 0-Setup ─→ Phase 0 (SfM/MVS) ─→ Phase 1 (MVS depth) ─→ Phase 2
 
 ---
 
+## 데이터셋
+
+| 데이터셋 | 출처 | 용도 | 비고 |
+|----------|------|------|------|
+| 성수동 드론 이미지 | 자체 촬영 | 주요 실험 (Phase 0~4) | 180장, oblique, 70m, 2048x1365 |
+| UrbanScene3D | ECCV 2022 | 추가 평가 (다양한 도시 환경) | 드론 이미지 + GT 메쉬 |
+| Building3D | ICCV 2023 | 추가 평가 (다양한 건물 유형) | 160K+ 건물 모델 |
+| ScanNet/ScanNet++ | — | PlanarSplatting 재현성 검증 | 실내 데이터셋 (원논문 기준) |
+
+현재 Phase에서는 성수동 데이터로 전체 파이프라인을 검증한 후, 논문 작성 시 공개 데이터셋으로 일반화 실험을 수행한다.
+
+## 비교 방법
+
+| 분류 | 방법 | 비고 |
+|------|------|------|
+| 기하학적 | City3D (Huang et al., 2022) | 사후 휴리스틱 분류 |
+| 기하학적 | PolyFit (Nan & Wonka, 2017) | 면 선택 기반 |
+| Neural | PlanarSplatting (CVPR 2025) | 원본, 의미론 없음 |
+| Neural | PGSR (TVCG 2024) | 평면 기반 GS |
+| Neural | 2DGS | Gaussian Splatting 표면 재구축 |
+| Baseline | 기하학적 재구축 + 사후 휴리스틱 분류 | City3D 방식 |
+| Baseline | 독립 semantic segmentation + 재구축 | 의미론-기하학 독립 처리 |
+
+Phase 3-B ablation은 제안 방법 내부의 구성요소 효과 검증이며, 비교 방법 실험은 논문 작성 단계에서 수행한다.
+
+## 평가 지표
+
+### 학습 모니터링 지표 (Phase 0~3)
+| 지표 | 용도 | Phase |
+|------|------|-------|
+| Depth MAE | 렌더링 깊이 정확도 | Phase 0+ |
+| Normal cos | 렌더링 법선 정확도 | Phase 0+ |
+| mIoU | 의미론적 분류 정확도 | Phase 2+ |
+
+### 최종 평가 지표 (논문용, Phase 4+)
+| 지표 | 용도 |
+|------|------|
+| Chamfer Distance | 메쉬 기하학적 정확도 (GT 대비) |
+| Completeness / Accuracy | 포인트 클라우드 기반 기하 평가 |
+| 평면 정확도 (Fidelity, L1-Chamfer) | 평면 프리미티브 정확도 |
+| 면 단위 분류 Accuracy, IoU per class | 의미론적 분류 정확도 |
+| val3dity 통과율 | CityGML 기하학적 유효성 |
+| 건물 당 최적화 시간 | 효율성 |
+
+학습 모니터링 지표는 Go/No-Go 판단에 사용하고, 최종 평가 지표는 비교 방법 실험 및 논문 표 작성에 사용한다.
+
+---
+
 ## Phase 0-Setup: 모니터링 환경 구축
 
 **목표:** TensorBoard 로깅, 시각화, 평가 스크립트 구축. Docker 환경 확인/보강.
@@ -158,7 +206,7 @@ CLAUDE.md 진행 상태 업데이트.
 
 ## Phase 2-A: 2D Segmentation 생성
 
-**목표:** Grounded SAM 2로 roof/wall/ground segmentation map 생성.
+**목표:** Grounded SAM 2 + COLMAP MVS normal로 roof/wall/ground segmentation map 생성.
 
 **Go/No-Go:** 시각 80%+ → Go / 50~80% → 프롬프트 조정
 
@@ -169,19 +217,44 @@ docs/EXPERIMENT_PLAN.md의 Phase 2-A를 진행해줘. 컨테이너 내부에서 
 scripts/generate_segmentation.py를 만들어줘.
 Grounded SAM 2 설치가 필요하면 Dockerfile에도 추가해줘.
 
-- "building roof"→1, "building wall"/"facade"→2, "ground"/"road"→3, 나머지→0
+MVS Hybrid 접근법으로 구현:
+1. Grounded SAM 2 (Grounding DINO + SAM 2.1)로 "building"과 "ground" 영역 검출
+2. Building 영역 내에서 COLMAP MVS normal의 world UP 내적으로 roof/wall 분류:
+   - dot(normal, world_up) > 0.5 → roof(1) (수평면)
+   - otherwise → wall(2) (binary split, ambiguous zone 없이)
+3. Building-ground 중첩 영역: normal로 판단 (수평→ground, 비수평→wall)
+4. Building 픽셀에 valid normal 없으면 → wall (기본값)
+5. MVS normal 없는 이미지는 text-only fallback ("building roof"→1, "building wall"→2, "ground"→3)
+6. 나머지→0 (background, ignore_index=0으로 학습에서 제외)
+
+주의: roof/wall 분류에 Metric3D normal을 사용하지 말 것.
+비스듬한 드론 뷰에서 Metric3D는 건물 facade를 수평면으로 오추정한다 (foreshortening bias).
+반드시 COLMAP MVS normal (*.geometric.bin)을 사용할 것.
+
+- Normal source: COLMAP MVS normal_maps (dense/stereo/normal_maps/*.geometric.bin)
+- 카메라 extrinsics: input_data.pth에서 로드
 - 입력: 이미지 폴더
 - 출력: seg_maps/ (class index png) + seg_vis/ (오버레이 확인용)
 
-실행 후 seg_vis/에서 여러 장 확인. 샘플 이미지 3~5장을 /results/phase2a/에 복사해줘.
+실행 후 seg_vis/에서 여러 장 확인. 특히 건물 facade가 wall(파랑)로 분류되는지 확인.
+샘플 이미지 3~5장을 /results/phase2a/에 복사해줘.
 /results/phase2a/REPORT.md 작성 (샘플 이미지 포함).
+CLAUDE.md 진행 상태 업데이트.
 ```
 
 ---
 
 ## Phase 2-B: 의미론적 헤드 구현
 
-**목표:** f_i(K=3) 추가, semantic 렌더링, L_sem 구현. 구현 난이도가 가장 높은 Phase.
+**목표:** f_i(K=3) 추가, semantic 렌더링, L_sem 구현, L_geo(L_normal_consistency) 추가. 구현 난이도가 가장 높은 Phase.
+
+**Go/No-Go (구현 검증):**
+| 검증 항목 | Go | Retry |
+|-----------|-----|-------|
+| Gradient check | ∂L_sem/∂f_i ≠ 0, ∂L_sem/∂R_i == 0 | 실패 → 렌더링 파이프라인 점검 |
+| Forward pass | semantic 렌더링 출력이 유효 (NaN/Inf 없음, 클래스별 확률합=1) | 오류 → 코드 디버깅 |
+| Density control | split/prune 후 f_i 차원 일치, optimizer state 정상 | 불일치 → sync 로직 수정 |
+| 기존 기능 보존 | --enable_semantic 없이 기존과 동일 결과 | 간섭 → 플래그 분기 점검 |
 
 **프롬프트:**
 ```
@@ -195,24 +268,37 @@ docs/RESEARCH_CONTEXT.md의 "프리미티브 파라미터 전체 구조" 섹션�
 3. adaptive density control 위치
 
 구현:
-1. f_i (K=3, learnable) 추가 — optimizer 등록, density control (split→복사, prune→제거)
+1. f_i (K=3, learnable) 추가 — 균등 분포 초기화, optimizer 등록, density control (split→복사, prune→제거)
 2. semantic 렌더링: alpha weight × softmax(f_i) (PyTorch 레벨, CUDA 커널 수정 금지)
 3. L_sem = CrossEntropyLoss(ignore_index=0), --enable_semantic --lambda_sem 0.1
-4. TensorBoard: L_sem, 클래스별 프리미티브 수(매 100 iter), Semantic vs GT(매 500 iter)
-5. visualize_primitives.py에 --color_by class (roof=빨강, wall=파랑, ground=회색)
-6. evaluate.py에 --metrics semantic_miou
-7. gradient check:
+4. L_geo = L_normal_consistency (렌더링 normal vs depth 유도 normal 일치), --lambda_geo 0.1 (기본값 0 → 기존 동작 보존)
+   - docs/RESEARCH_CONTEXT.md의 "L_geo" 섹션 참조
+   - allmap[0](depth)에서 finite diff로 normal 유도 → allmap[2:5](rendered normal)과 비교
+   - L_planar, L_adj는 CUDA primitive ID 채널 필요 → Phase 4에서 구현
+5. TensorBoard: L_sem, L_geo, 클래스별 프리미티브 수(매 100 iter), Semantic vs GT(매 500 iter)
+6. visualize_primitives.py에 --color_by class (roof=빨강, wall=파랑, ground=회색)
+7. evaluate.py에 --metrics semantic_miou
+8. gradient check:
    - torch.autograd.grad(L_sem, f_params) non-zero 확인 (f_i에 gradient 전달됨)
    - torch.autograd.grad(L_sem, R_params) == zero 확인 (L_sem이 R_i를 건드리지 않음 → Phase 3-A에서 L_mutual 고유 효과 근거)
-8. --enable_semantic 플래그로 기존 기능 보존
-9. 패키지 필요하면 Dockerfile에도 추가
+9. --enable_semantic 플래그로 기존 기능 보존
+10. 패키지 필요하면 Dockerfile에도 추가
+
+/results/phase2b/REPORT.md 작성 (구현 검증 결과):
+- gradient check 결과 값 (∂L_sem/∂f_i, ∂L_sem/∂R_i)
+- L_geo(L_normal_consistency) 구현 확인 (depth→finite diff normal vs rendered normal)
+- 수정/추가한 파일 목록
+- density control 동작 확인 결과
+- 기존 기능 보존 확인 결과
+- 이슈 및 해결
+CLAUDE.md 진행 상태 업데이트.
 ```
 
 ---
 
 ## Phase 2-C: L_sem 독립 학습
 
-**목표:** L_mutual 없이 baseline 확보. Ablation (a) No mutual 조건의 결과.
+**목표:** L_mutual 없이 baseline 확보. Ablation (c) Independent 조건의 결과.
 
 **Go/No-Go:**
 | 지표 | Go | Retry |
@@ -221,16 +307,24 @@ docs/RESEARCH_CONTEXT.md의 "프리미티브 파라미터 전체 구조" 섹션�
 | Depth MAE | Phase 1 대비 ≤ 10% 악화 | > 10% → λ_s 감소 |
 | Normal cos | Phase 1 대비 ≤ 5% 악화 | > 5% → λ_s 감소 |
 
+**Segmentation 초기값 영향 분석 (Phase 2-A → 2-C 연결):**
+Phase 2-A에서 생성한 seg_maps는 noisy GT이다 (MVS Hybrid: wall/ground 정확, roof 8.3%로 낮음, MVS 노이즈 speckle 존재). Phase 2-C 결과 분석 시 다음을 확인:
+- Seg map에서 미분류(background=0)인 영역이 학습에 영향 없는지 (`ignore_index=0` 동작 확인)
+- Roof 클래스의 낮은 비율이 학습 편향을 유발하는지 (class별 프리미티브 수 TensorBoard 확인)
+- MVS 노이즈 speckle이 경계 영역에서 semantic 분류를 불안정하게 만드는지
+- 결과가 불만족스러우면 Phase 2-A seg_maps 개선 후 재학습 검토
+
 **프롬프트:**
 ```
 docs/EXPERIMENT_PLAN.md의 Phase 2-C를 진행해줘. 컨테이너 내부에서 작업이야.
 
---enable_semantic --lambda_sem 0.1로 5000 iter 학습.
+--enable_semantic --lambda_sem 0.1 --lambda_geo 0.1로 5000 iter 학습.
+L_geo는 Phase 2-B에서 구현한 L_normal_consistency. 이후 모든 실험에 동일하게 포함.
 evaluate.py로 Phase 1과 비교 (depth_mae, normal_cos, semantic_miou).
 visualize (color_by class) → PLY export.
 렌더링 결과 이미지 저장 (Depth, Normal, Semantic 각 2~3장 + GT RGB 참고용).
 웹 뷰어 또는 PLY에서 3D 클래스별 시각화 캡처도.
-/results/phase2/REPORT.md 작성 (정량 + 정성 이미지 포함).
+/results/phase2c/REPORT.md 작성 (정량 + 정성 이미지 포함).
 CLAUDE.md 진행 상태 업데이트.
 ```
 
@@ -253,43 +347,68 @@ docs/RESEARCH_CONTEXT.md의 L_mutual 수식과 gradient 분석을 반드시 참�
 1. L_mutual (RESEARCH_CONTEXT.md 수식 참조)
    - f_i와 R_i(→n_i) 모두에 미분 가능 (detach 금지)
    - 다른 파라미터(c_i, r_i, color, opacity)는 L_mutual과 무관
-2. --mutual_warmup_ratio 0.33, --lambda_mutual 0.05
+2. Warmup: 3단계 curriculum (RESEARCH_CONTEXT 참조)
+   - --mutual_warmup_start 0.33 --mutual_warmup_end 0.67 --lambda_mutual 0.05
+   - 0~33%: λ_m=0, 33%~67%: 점진적 증가, 67%~100%: 목표값 유지
 3. --mutual_mode full/sem2geo/geo2sem/none
    - sem2geo: softmax(f_i).detach() → R_i만 gradient
    - geo2sem: n_i.detach() → f_i만 gradient
 4. TensorBoard: L_mutual, gradient norm (||∂L/∂f||, ||∂L/∂R||) 매 100 iter
 5. 학습 시작 시 gradient check 자동 실행 (양방향 non-zero 확인)
-6. configs/에 ablation yaml 4개 생성
+6. configs/에 ablation .conf 7개 생성 (pyhocon, base config에 merge 가능하도록)
+   - RESEARCH_CONTEXT.md Ablation 설계 참조: core (a)~(d), directional (e)~(f), warmup (d-nowarmup)
 7. 패키지 필요하면 Dockerfile에도 추가
+
+/results/phase3a/REPORT.md 작성 (구현 검증 결과):
+- 양방향 gradient check 결과 값 (∂L_mutual/∂f_i, ∂L_mutual/∂R_i)
+- mutual_mode별 gradient 흐름 확인 (full: 양방향, sem2geo: R_i만, geo2sem: f_i만)
+- 수정/추가한 파일 목록
+- ablation .conf 7개 내용 요약
+- 이슈 및 해결
+CLAUDE.md 진행 상태 업데이트.
 ```
 
 ---
 
-## Phase 3-B: Ablation 4조건 학습
+## Phase 3-B: Ablation 학습
 
-**목표:** 논문 핵심 실험. 양방향 상호 보강 효과 검증.
+**목표:** 논문 핵심 실험. 양방향 상호 보강 효과 검증. docs/RESEARCH_CONTEXT.md의 Ablation 설계 참조.
 
-**기대 패턴:** RESEARCH_CONTEXT.md의 Ablation 설계 참조.
+**실험 조건 (총 7개):**
+- Core Ablation (a)~(d): 전체 접근법 검증 — 핵심 비교는 (c) Independent vs (d) Joint
+- Directional Ablation (e)~(f): L_mutual의 방향별 효과 검증
+- Warmup Ablation (d-nowarmup): warmup 필요성 검증
 
-**Go/No-Go:** Full mutual이 ≥ 2개 지표에서 No mutual 대비 개선 → 핵심 기여 확인
+**Go/No-Go:** Joint(d)가 Independent(c) 대비 ≥ 2개 지표에서 개선 → 핵심 기여 확인
 
 **프롬프트:**
 ```
 docs/EXPERIMENT_PLAN.md의 Phase 3-B를 진행해줘. 컨테이너 내부에서 작업이야.
+docs/RESEARCH_CONTEXT.md의 Ablation 설계를 반드시 참고해줘.
 
 scripts/compare_ablation.py를 만들어줘 (여러 evaluation.json → 비교 표 CSV + 터미널 출력).
 
-순차 실행 (GPU 1개):
-- (a) none: Phase 2-C checkpoint 복사
-- (b) full: ablation_full.yaml
-- (c) sem2geo: ablation_sem2geo.yaml
-- (d) geo2sem: ablation_geo2sem.yaml
+순차 실행 (GPU 1개). L_geo는 모든 조건에 동일 포함 (해당 조건 제외):
 
+Core Ablation:
+- (a) geo_only: L_depth + L_normal + L_geo (semantic 헤드 없음)
+- (b) sem_only: L_depth + L_normal + L_sem (L_geo 없음)
+- (c) independent: L_depth + L_normal + L_geo + L_sem (λ_m=0) — Phase 2-C와 동일
+- (d) joint: L_depth + L_normal + L_geo + L_sem + L_mutual (warmup 적용)
+
+Directional Ablation:
+- (e) sem2geo: (d)에서 softmax(f_i).detach() → R_i만 gradient
+- (f) geo2sem: (d)에서 n_i.detach() → f_i만 gradient
+
+Warmup Ablation:
+- (d-nowarmup): (d)에서 warmup 없이 λ_m 즉시 적용
+
+configs/에 ablation .conf 7개 생성 (pyhocon, base config에 merge 가능하도록).
 각각 evaluate.py 실행 후 compare_ablation.py로 비교 표.
-TensorBoard에서 4조건 동시 비교 설정도 알려줘.
-각 조건의 렌더링 결과 이미지 저장 (4조건 × Depth/Normal/Semantic + GT RGB 참고용).
-3D 클래스 시각화도 4조건 비교 (PLY 또는 웹 뷰어).
-/results/phase3/REPORT.md 작성 (ablation 표 + 비교 이미지 + 해석).
+TensorBoard에서 조건 동시 비교 설정도 알려줘.
+각 조건의 렌더링 결과 이미지 저장 (Depth/Normal/Semantic + GT RGB 참고용).
+3D 클래스 시각화도 조건 비교 (PLY 또는 웹 뷰어).
+/results/phase3b/REPORT.md 작성 (ablation 표 + 비교 이미지 + 해석).
 CLAUDE.md 진행 상태 업데이트.
 ```
 
@@ -304,14 +423,14 @@ CLAUDE.md 진행 상태 업데이트.
 **실험 조건:**
 | 조건 | L_photo | L_mutual | 비교 기준 |
 |------|---------|----------|-----------|
-| Phase 3-B (b) | 없음 | Full | (기존 core ablation 결과, 참고용) |
+| Phase 3-B (d) | 없음 | Full | (기존 core ablation 결과, 참고용) |
 | 3-C-1 | 추가 | 없음 (λ_m=0) | vs Phase 2-C (L_photo 없음, L_mutual 없음) |
-| 3-C-2 | 추가 | Full | vs 3-C-1 및 Phase 3-B(b) |
+| 3-C-2 | 추가 | Full | vs 3-C-1 및 Phase 3-B(d) |
 
 **확인 사항:**
 - 3-C-1 vs Phase 2-C: L_photo 추가만으로 기하 지표(Depth MAE, Normal Error)가 개선되는가?
 - 3-C-2 vs 3-C-1: L_photo가 있을 때도 L_mutual이 추가 개선을 주는가?
-- 3-C-2 vs Phase 3-B (b): L_photo 추가가 전체적으로 더 나은가?
+- 3-C-2 vs Phase 3-B (d): L_photo 추가가 전체적으로 더 나은가?
 
 **프롬프트:**
 ```
@@ -330,26 +449,36 @@ PlanarSplatting에 L_photo(RGB photometric loss)를 추가하는 실험이야.
 3. --enable_photo --lambda_photo 플래그
 4. density control에서 color도 처리 (split→복사, prune→제거)
 
-실험:
-- 3-C-1: --enable_photo --lambda_photo 1.0 (L_mutual 없음)
-- 3-C-2: --enable_photo --lambda_photo 1.0 --mutual_mode full
+실험 (L_geo는 모든 조건에 동일 포함):
+- 3-C-1: --enable_photo --lambda_photo 1.0 --lambda_geo 0.1 (L_mutual 없음)
+- 3-C-2: --enable_photo --lambda_photo 1.0 --lambda_geo 0.1 --mutual_mode full
 
 각각 evaluate.py 실행. Phase 3-B 결과와 비교.
 /results/phase3c/REPORT.md 작성 (L_photo 유무 비교 표 + 이미지).
+CLAUDE.md 진행 상태 업데이트.
 ```
 
 ---
 
 ## Phase 4: CityGML 변환 + 검증
 
-**목표:** 프리미티브 → CityGML LOD2 + val3dity 검증.
+**목표:** CUDA rasterizer에 primitive ID 채널 추가, L_planar/L_adj 구현, 프리미티브 → CityGML LOD2 + val3dity 검증.
 
 **프롬프트:**
 ```
 docs/EXPERIMENT_PLAN.md의 Phase 4를 진행해줘. 컨테이너 내부에서 작업이야.
+docs/RESEARCH_CONTEXT.md의 "L_geo" 섹션도 참고해줘.
 
+Part 1: CUDA rasterizer 확장 + L_geo 완성
+1. CUDA rasterizer에 primitive ID 채널 추가 (allmap 8번째 채널)
+   - forward.cu에서 최대 기여 프리미티브 ID를 기록
+   - backward은 이 채널에 대해 gradient 불필요 (argmax이므로)
+2. L_planar 구현 (역투영 3D점 → 프리미티브 평면 거리)
+3. L_adj 구현 (인접 프리미티브 경계 연속성)
+4. L_geo = L_nc + L_planar + L_adj로 완성, --lambda_geo_planar, --lambda_geo_adj 플래그
+
+Part 2: CityGML 변환
 scripts/export_citygml.py를 만들어줘.
-
 먼저 Phase 3 checkpoint 구조를 파악해줘.
 
 처리:
