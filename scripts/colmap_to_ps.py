@@ -19,6 +19,12 @@ Usage:
         --output_path planarSplat_ExpRes/seongsu \
         --use_precomputed --run_training
 
+    # MVS depth source (Phase 1)
+    python scripts/colmap_to_ps.py \
+        --colmap_path /path/to/colmap/output \
+        --output_path planarSplat_ExpRes/seongsu_phase1 \
+        --depth_source mvs --run_training
+
 Expected COLMAP directory structure:
     colmap_path/
     ├── images/               # original images
@@ -28,7 +34,10 @@ Expected COLMAP directory structure:
     │   └── points3D.bin
     └── dense/                # (optional) undistorter output
         ├── images/           # undistorted images (preferred)
-        └── sparse/           # undistorted camera params (preferred)
+        ├── sparse/           # undistorted camera params (preferred)
+        └── stereo/           # MVS output (for --depth_source mvs)
+            ├── depth_maps/   # *.geometric.bin
+            └── normal_maps/  # *.geometric.bin
 """
 
 import os
@@ -46,6 +55,102 @@ sys.path.insert(0, _project_root)
 sys.path.insert(0, os.path.join(_project_root, 'planarsplat'))
 
 from utils_demo.read_write_model import read_model, qvec2rotmat
+
+
+def read_colmap_array(path):
+    """Read COLMAP MVS binary file (depth or normal map).
+
+    Format: text header 'width&height&channels&' followed by row-major float32 data.
+    No null terminator between header and data.
+    """
+    with open(path, 'rb') as f:
+        header = b''
+        amp_count = 0
+        while amp_count < 3:
+            b = f.read(1)
+            if b == b'&':
+                amp_count += 1
+            header += b
+        parts = header.decode('ascii').split('&')
+        w, h, c = int(parts[0]), int(parts[1]), int(parts[2])
+        data = np.frombuffer(f.read(), dtype=np.float32)[:w * h * c]
+        if c == 1:
+            return data.reshape(h, w)
+        return data.reshape(h, w, c)
+
+
+def depth_to_normal_cam(depth, intrinsic):
+    """Compute camera-space normals from depth map via finite differences.
+
+    Args:
+        depth: (H, W) float32, metric depth. Invalid pixels = 0.
+        intrinsic: (3, 3) float32, camera intrinsic matrix.
+
+    Returns:
+        normal: (3, H, W) float32 in [0, 1] range (matching Metric3D storage format).
+               Invalid pixels have value 0.5 (which maps to 0 in [-1,1] after *2-1).
+    """
+    H, W = depth.shape
+    fx, fy = intrinsic[0, 0], intrinsic[1, 1]
+    cx, cy = intrinsic[0, 2], intrinsic[1, 2]
+
+    valid = depth > 0
+
+    # Backproject to 3D in camera frame
+    u, v = np.meshgrid(np.arange(W, dtype=np.float32), np.arange(H, dtype=np.float32))
+    X = (u - cx) / fx * depth
+    Y = (v - cy) / fy * depth
+    Z = depth.copy()
+
+    # Forward finite differences
+    # du direction (horizontal)
+    dXdu = np.zeros_like(X)
+    dYdu = np.zeros_like(Y)
+    dZdu = np.zeros_like(Z)
+    dXdu[:, :-1] = X[:, 1:] - X[:, :-1]
+    dYdu[:, :-1] = Y[:, 1:] - Y[:, :-1]
+    dZdu[:, :-1] = Z[:, 1:] - Z[:, :-1]
+
+    # dv direction (vertical)
+    dXdv = np.zeros_like(X)
+    dYdv = np.zeros_like(Y)
+    dZdv = np.zeros_like(Z)
+    dXdv[:-1] = X[1:] - X[:-1]
+    dYdv[:-1] = Y[1:] - Y[:-1]
+    dZdv[:-1] = Z[1:] - Z[:-1]
+
+    # Cross product: du x dv
+    nx = dYdu * dZdv - dZdu * dYdv
+    ny = dZdu * dXdv - dXdu * dZdv
+    nz = dXdu * dYdv - dYdu * dXdv
+
+    # Normalize
+    norm = np.sqrt(nx**2 + ny**2 + nz**2) + 1e-10
+    nx /= norm
+    ny /= norm
+    nz /= norm
+
+    # Ensure normals point toward camera (z < 0 in camera space)
+    flip = nz > 0
+    nx[flip] *= -1
+    ny[flip] *= -1
+    nz[flip] *= -1
+
+    # Invalidate: current pixel invalid, or any neighbor used in diff is invalid
+    neighbor_valid = np.ones_like(valid)
+    neighbor_valid[:, :-1] &= valid[:, 1:]   # right neighbor for du
+    neighbor_valid[:-1] &= valid[1:]          # bottom neighbor for dv
+    all_valid = valid & neighbor_valid
+
+    # Set invalid normals to 0 in [-1,1] space → 0.5 in [0,1] storage
+    nx[~all_valid] = 0.0
+    ny[~all_valid] = 0.0
+    nz[~all_valid] = 0.0
+
+    # Convert [-1,1] → [0,1] to match Metric3D format
+    normal = np.stack([nx, ny, nz], axis=0)  # (3, H, W)
+    normal = (normal + 1.0) / 2.0
+    return normal.astype(np.float32)
 
 
 def find_colmap_model(colmap_path):
@@ -339,19 +444,78 @@ def convert(args):
     # Step 2: Export sparse point cloud
     pcd_path = export_sparse_pointcloud(colmap_data['points3D'], args.output_path)
 
-    # Step 3: Run Metric3D for mono depth/normal
-    print(f"[INFO] Running Metric3D on {len(colmap_data['color_images'])} images...")
-    from utils_demo.run_metric3d import extract_mono_geo_demo
-    depth_maps_list, normal_maps_list = extract_mono_geo_demo(
-        colmap_data['color_images'],
-        colmap_data['intrinsics'],
-    )
-    print(f"[INFO] Metric3D done. Depth shape: {depth_maps_list[0].shape}, Normal shape: {normal_maps_list[0].shape}")
+    depth_source = getattr(args, 'depth_source', 'mono')
 
-    # Step 4: Scale-align mono depth with COLMAP sparse points
-    depth_maps_aligned = scale_align_depth(colmap_data, depth_maps_list)
+    if depth_source == 'mvs':
+        # ===== MVS depth path: load COLMAP geometric depth maps =====
+        stereo_dir = os.path.join(args.colmap_path, 'dense', 'stereo')
+        depth_map_dir = os.path.join(stereo_dir, 'depth_maps')
+        if not os.path.isdir(depth_map_dir):
+            raise FileNotFoundError(
+                f"MVS depth maps not found at {depth_map_dir}. "
+                "Run COLMAP patch_match_stereo first.")
 
-    # Step 5: Build data dict in PlanarSplatting format
+        depth_maps_list = []
+        normal_maps_list = []
+        n_loaded = 0
+        n_missing = 0
+
+        for i, (img_path, intrinsic) in enumerate(tqdm(
+                zip(colmap_data['image_paths'], colmap_data['intrinsics']),
+                total=len(colmap_data['image_paths']),
+                desc="Loading MVS depth")):
+            image_name = os.path.basename(img_path)
+            geo_path = os.path.join(depth_map_dir, f'{image_name}.geometric.bin')
+
+            if not os.path.exists(geo_path):
+                print(f"[WARN] MVS depth not found for {image_name}, using zeros")
+                h, w = colmap_data['color_images'][i].shape[:2]
+                depth_maps_list.append(np.zeros((h, w), dtype=np.float32))
+                normal_maps_list.append(np.full((3, h, w), 0.5, dtype=np.float32))
+                n_missing += 1
+                continue
+
+            depth = read_colmap_array(geo_path)  # (H_mvs, W_mvs)
+
+            # Resize to target resolution if needed
+            tgt_h, tgt_w = colmap_data['color_images'][i].shape[:2]
+            if depth.shape != (tgt_h, tgt_w):
+                depth = cv2.resize(depth, (tgt_w, tgt_h),
+                                   interpolation=cv2.INTER_NEAREST)
+
+            # Compute normal from depth
+            normal = depth_to_normal_cam(depth, intrinsic)  # (3, H, W) in [0,1]
+
+            depth_maps_list.append(depth)
+            normal_maps_list.append(normal)
+            n_loaded += 1
+
+        print(f"[INFO] MVS depth loaded: {n_loaded} views, {n_missing} missing")
+        valid_coverages = []
+        for d in depth_maps_list:
+            cov = 100 * (d > 0).sum() / d.size
+            valid_coverages.append(cov)
+        print(f"[INFO] MVS depth coverage: mean={np.mean(valid_coverages):.1f}%, "
+              f"min={np.min(valid_coverages):.1f}%, max={np.max(valid_coverages):.1f}%")
+
+        # No scale alignment needed (MVS depth is absolute)
+        depth_maps_aligned = depth_maps_list
+
+    else:
+        # ===== Mono depth path: Metric3D + scale alignment (original) =====
+        print(f"[INFO] Running Metric3D on {len(colmap_data['color_images'])} images...")
+        from utils_demo.run_metric3d import extract_mono_geo_demo
+        depth_maps_list, normal_maps_list = extract_mono_geo_demo(
+            colmap_data['color_images'],
+            colmap_data['intrinsics'],
+        )
+        print(f"[INFO] Metric3D done. Depth shape: {depth_maps_list[0].shape}, "
+              f"Normal shape: {normal_maps_list[0].shape}")
+
+        # Scale-align mono depth with COLMAP sparse points
+        depth_maps_aligned = scale_align_depth(colmap_data, depth_maps_list)
+
+    # Build data dict in PlanarSplatting format
     data = {
         'color': colmap_data['color_images'],       # list of (H,W,3) uint8
         'depth': depth_maps_aligned,                 # list of (H,W) float32
@@ -361,12 +525,13 @@ def convert(args):
         'intrinsics': colmap_data['intrinsics'],     # list of (3,3) float32
         'out_path': args.output_path,
         'init_method': args.init_method,
+        'depth_source': depth_source,
     }
 
     if pcd_path:
         data['colmap_pcd_path'] = pcd_path
 
-    # Step 6: Save
+    # Save
     torch.save(data, data_path)
     print(f"[INFO] Saved input data to {data_path} ({len(data['color'])} views)")
 
@@ -377,6 +542,7 @@ def convert(args):
     print(f"{'='*60}")
     print(f"  COLMAP path:     {args.colmap_path}")
     print(f"  Output path:     {args.output_path}")
+    print(f"  Depth source:    {depth_source}")
     print(f"  Init method:     {args.init_method}")
     print(f"  Num views:       {len(data['color'])}")
     print(f"  Image resolution: {h} x {w}")
@@ -399,7 +565,13 @@ def run_training(data, args):
     conf.put('train.exps_folder_name', args.output_path)
     img_res = [data['color'][0].shape[0], data['color'][0].shape[1]]
     conf.put('dataset.img_res', img_res)
-    conf.put('dataset.pre_align', True)
+
+    depth_source = data.get('depth_source', 'mono')
+    if depth_source == 'mvs':
+        conf.put('dataset.pre_align', False)  # MVS depth is absolute scale
+    else:
+        conf.put('dataset.pre_align', True)
+
     conf.put('dataset.voxel_length', 0.1)
     conf.put('dataset.sdf_trunc', 0.2)
     conf.put('plane_model.init_plane_num', args.init_plane_num)
@@ -428,6 +600,8 @@ def main():
                         help='Output directory for PlanarSplatting data')
     parser.add_argument('--init_method', choices=['colmap', 'vggt'], default='colmap',
                         help='Initialization method (colmap: TSDF mesh from Metric3D + COLMAP scale alignment)')
+    parser.add_argument('--depth_source', choices=['mono', 'mvs'], default='mono',
+                        help='Depth supervision source: mono (Metric3D) or mvs (COLMAP geometric depth)')
     parser.add_argument('--max_images', type=int, default=-1,
                         help='Max number of images to use (-1 for all)')
     parser.add_argument('--use_precomputed', action='store_true',
