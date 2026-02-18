@@ -206,9 +206,24 @@ CLAUDE.md 진행 상태 업데이트.
 
 ## Phase 2-A: 2D Segmentation 생성
 
-**목표:** Grounded SAM 2 + COLMAP MVS normal로 roof/wall/ground segmentation map 생성.
+**목표:** Grounded SAM 2 + MVS normal + DJI gimbal pitch로 roof/wall/ground segmentation map 생성.
 
-**Go/No-Go:** 시각 80%+ → Go / 50~80% → 프롬프트 조정
+**Go/No-Go:** Wall/Ground 시각 검수 80%+ → Go (Roof는 낮아도 허용 — L_mutual이 보완)
+
+**최종 구현 (DJI pitch + camera frame 직접 계산):**
+- Grounded SAM (building + ground) → DJI gimbal pitch로 camera frame gravity 계산 → normal dot product로 roof/wall/ground 분류
+- Normal source: input_data.pth (colmap_to_ps.py가 처리한 MVS normal, [0,1] format)
+- Gravity source: DJI EXIF `drone-dji:GimbalPitchDegree` → `gravity_up_cam = [0, -cos(pitch), sin(pitch)]`
+- Two-threshold system: horiz_thresh=0.85 (strong horizontal→roof/ground), wall_thresh=0.3 (strong vertical→wall), ambiguous→zone default
+- Score-based overlap: building_score > ground_score → building zone
+- COLMAP world frame 불사용 (gravity를 camera frame에서 직접 계산)
+
+**결과:** 100 hybrid + 80 text-only. Roof 5.1%, Wall 23.0%, Ground 19.7%, Coverage 47.7%.
+- Wall/Ground 분류 정확 (facade=wall, 도로=ground 일관성 확인)
+- Roof가 낮은 이유: oblique view에서 MVS 퇴화 법선(|dot|≈|sin(pitch)|=0.755)이 ambiguous zone에 위치 → 보수적 threshold(0.85) 필요
+- Roof 부족은 L_mutual이 기하→의미론 방향으로 보완 (설계 의도)
+- 3-class 직접 검출(roof/wall/ground 별도 GDINO) 비교 검증: GDINO가 oblique view에서 roof/facade를 시점별로 혼동 → 2-step이 이론적·실험적으로 우수
+- 시각적 확인: `user_inputs/testset/0_25x/seg_vis/` (빨강=roof, 파랑=wall, 초록=ground 오버레이)
 
 **프롬프트:**
 ```
@@ -219,26 +234,39 @@ Grounded SAM 2 설치가 필요하면 Dockerfile에도 추가해줘.
 
 MVS Hybrid 접근법으로 구현:
 1. Grounded SAM 2 (Grounding DINO + SAM 2.1)로 "building"과 "ground" 영역 검출
-2. Building 영역 내에서 COLMAP MVS normal의 world UP 내적으로 roof/wall 분류:
-   - dot(normal, world_up) > 0.5 → roof(1) (수평면)
-   - otherwise → wall(2) (binary split, ambiguous zone 없이)
-3. Building-ground 중첩 영역: normal로 판단 (수평→ground, 비수평→wall)
-4. Building 픽셀에 valid normal 없으면 → wall (기본값)
-5. MVS normal 없는 이미지는 text-only fallback ("building roof"→1, "building wall"→2, "ground"→3)
-6. 나머지→0 (background, ignore_index=0으로 학습에서 제외)
+2. DJI EXIF gimbal pitch로 camera frame에서 gravity 방향 계산:
+   - gravity_up_cam = [0, -cos(pitch), sin(pitch)] (OpenCV 카메라 규약)
+   - COLMAP world frame은 사용하지 않음
+3. Building 영역 내에서 |dot(normal_cam, gravity_up_cam)|로 roof/wall 분류:
+   - Two-threshold: > 0.85 → roof(1), ≤ 0.3 → wall(2), 사이 → zone default(building→wall)
+   - 퇴화 법선(|dot|≈|sin(pitch)|) 대응을 위한 보수적 설계
+4. Score-based overlap: building_score > ground_score → building zone으로 배정
+5. Normal 없는 픽셀 → background(0, ignore_index=0)
+6. MVS normal/DJI pitch 없는 이미지 → text-only fallback
+7. Normal source: input_data.pth (colmap_to_ps.py 처리 완료, [0,1] format)
 
-주의: roof/wall 분류에 Metric3D normal을 사용하지 말 것.
-비스듬한 드론 뷰에서 Metric3D는 건물 facade를 수평면으로 오추정한다 (foreshortening bias).
-반드시 COLMAP MVS normal (*.geometric.bin)을 사용할 것.
-
-- Normal source: COLMAP MVS normal_maps (dense/stereo/normal_maps/*.geometric.bin)
-- 카메라 extrinsics: input_data.pth에서 로드
-- 입력: 이미지 폴더
+- 입력: 이미지 폴더 + input_data.pth + raw DJI 이미지 (EXIF용)
 - 출력: seg_maps/ (class index png) + seg_vis/ (오버레이 확인용)
 
+실행:
+python scripts/generate_segmentation.py \
+    --image_dir user_inputs/testset/0_25x/dense/images \
+    --output_dir user_inputs/testset/0_25x/seg_maps \
+    --vis_dir user_inputs/testset/0_25x/seg_vis \
+    --input_data planarSplat_ExpRes/seongsu_phase1_mvsnormal/input_data.pth \
+    --raw_image_dir user_inputs/testset/raw/images
+
 실행 후 seg_vis/에서 여러 장 확인. 특히 건물 facade가 wall(파랑)로 분류되는지 확인.
-샘플 이미지 3~5장을 /results/phase2a/에 복사해줘.
-/results/phase2a/REPORT.md 작성 (샘플 이미지 포함).
+
+/results/phase2a/REPORT.md 작성:
+- 정량 지표: 전체 180장 coverage, 클래스별 비율 (mean/min/max)
+- 정성적 결과: 데이터셋 전체에서 다양한 장면 8~9장 선별 (초반/중반/후반 균등 분포)
+  - seg_vis/ 이미지를 results/phase2a/images/에 복사
+  - 각 이미지에 구체적 캡션 (어떤 구조물이 어떤 클래스로 분류되었는지)
+  - 이미지별 클래스 비율 표 포함
+- 이전 접근법들과의 비교 표 (시도한 방법들의 장단점)
+- Go/No-Go 근거 (다양한 장면 기반)
+- 이슈 및 해결 (발생한 문제와 해결 방법)
 CLAUDE.md 진행 상태 업데이트.
 ```
 
@@ -246,7 +274,8 @@ CLAUDE.md 진행 상태 업데이트.
 
 ## Phase 2-B: 의미론적 헤드 구현
 
-**목표:** f_i(K=3) 추가, semantic 렌더링, L_sem 구현, L_geo(L_normal_consistency) 추가. 구현 난이도가 가장 높은 Phase.
+**목표:** f_i(K=4) 추가, semantic 렌더링, L_sem 구현, L_geo(L_normal_consistency) 추가. 구현 난이도가 가장 높은 Phase.
+K=4인 이유: seg_maps class ID가 0(bg), 1(roof), 2(wall), 3(ground)이고, CrossEntropyLoss(ignore_index=0)는 target=0 픽셀만 무시할 뿐 출력 채널은 4개 필요.
 
 **Go/No-Go (구현 검증):**
 | 검증 항목 | Go | Retry |
@@ -268,8 +297,11 @@ docs/RESEARCH_CONTEXT.md의 "프리미티브 파라미터 전체 구조" 섹션�
 3. adaptive density control 위치
 
 구현:
-1. f_i (K=3, learnable) 추가 — 균등 분포 초기화, optimizer 등록, density control (split→복사, prune→제거)
-2. semantic 렌더링: alpha weight × softmax(f_i) (PyTorch 레벨, CUDA 커널 수정 금지)
+1. f_i (K=4, learnable) 추가 — seg_maps class ID가 0-3이고 CrossEntropyLoss(ignore_index=0) 사용하므로 출력 4채널 필요. 균등 분포 초기화, optimizer 등록, density control (split→복사, prune→제거)
+2. semantic 렌더링 (Option A — raw feature blend → softmax):
+   - raw f_i를 colors_precomp에 전달 → rasterizer가 alpha-blend → 결과에 softmax 적용
+   - 즉 softmax는 렌더링 이후(2D pixel 레벨)에서 수행. rasterizer 코드 수정 금지 (CUDA 커널 수정 금지)
+   - L_mutual은 렌더링을 거치지 않는다 — per-primitive softmax(f_i)와 n_i를 직접 사용 (RESEARCH_CONTEXT.md 참조)
 3. L_sem = CrossEntropyLoss(ignore_index=0), --enable_semantic --lambda_sem 0.1
 4. L_geo = L_normal_consistency (렌더링 normal vs depth 유도 normal 일치), --lambda_geo 0.1 (기본값 0 → 기존 동작 보존)
    - docs/RESEARCH_CONTEXT.md의 "L_geo" 섹션 참조
@@ -283,6 +315,12 @@ docs/RESEARCH_CONTEXT.md의 "프리미티브 파라미터 전체 구조" 섹션�
    - torch.autograd.grad(L_sem, R_params) == zero 확인 (L_sem이 R_i를 건드리지 않음 → Phase 3-A에서 L_mutual 고유 효과 근거)
 9. --enable_semantic 플래그로 기존 기능 보존
 10. 패키지 필요하면 Dockerfile에도 추가
+
+참고 (항공 이미지 특성):
+- seg_maps GT는 Grounded SAM + MVS normal + DJI pitch 기반으로 생성됨 (Phase 2-A). 완벽하지 않은 noisy GT이다.
+- 클래스 불균형: Roof 5.1%, Wall 23.0%, Ground 19.7%, Background 52.3% (180장 평균)
+- Roof가 특히 적음 (유효 라벨 중 ~11%). Oblique view에서 roof가 적게 보이는 본질적 한계 + MVS 퇴화 법선으로 보수적 threshold 필요
+- L_sem의 multi-view consistency가 2D seg GT 노이즈를 자연스럽게 희석 (같은 3D 프리미티브가 여러 view에서 supervision 받음)
 
 /results/phase2b/REPORT.md 작성 (구현 검증 결과):
 - gradient check 결과 값 (∂L_sem/∂f_i, ∂L_sem/∂R_i)
@@ -308,11 +346,17 @@ CLAUDE.md 진행 상태 업데이트.
 | Normal cos | Phase 1 대비 ≤ 5% 악화 | > 5% → λ_s 감소 |
 
 **Segmentation 초기값 영향 분석 (Phase 2-A → 2-C 연결):**
-Phase 2-A에서 생성한 seg_maps는 noisy GT이다 (MVS Hybrid: wall/ground 정확, roof 8.3%로 낮음, MVS 노이즈 speckle 존재). Phase 2-C 결과 분석 시 다음을 확인:
+Phase 2-A에서 생성한 seg_maps는 noisy GT이다 (MVS Hybrid: wall/ground 정확, roof 5.1%로 낮음). Phase 2-C 결과 분석 시 다음을 확인:
 - Seg map에서 미분류(background=0)인 영역이 학습에 영향 없는지 (`ignore_index=0` 동작 확인)
-- Roof 클래스의 낮은 비율이 학습 편향을 유발하는지 (class별 프리미티브 수 TensorBoard 확인)
-- MVS 노이즈 speckle이 경계 영역에서 semantic 분류를 불안정하게 만드는지
-- 결과가 불만족스러우면 Phase 2-A seg_maps 개선 후 재학습 검토
+- Roof 클래스의 낮은 비율(5.1%)이 학습 편향을 유발하는지 (class별 프리미티브 수 TensorBoard 확인)
+- 결과가 불만족스러우면 아래 순서로 seg_maps 개선 검토
+
+**Seg map 개선 전략 (mIoU 미달 시 순서):**
+1. Class-balanced weighting (inverse frequency 또는 focal loss) — 코드 수정만으로 가능
+2. λ_sem 조정 (0.05~0.5 범위)
+3. Text-only 80장에 multi-prompt voting ("building roof" + "building wall" 별도 검출 후 score 합산)
+4. Pitch-adaptive threshold: 이미지별 |sin(pitch)| + margin으로 degenerate 경계 자동 조정
+5. Seg map 자체가 병목이면 Phase 2-A로 돌아가 재생성 후 재학습
 
 **프롬프트:**
 ```
@@ -324,6 +368,12 @@ evaluate.py로 Phase 1과 비교 (depth_mae, normal_cos, semantic_miou).
 visualize (color_by class) → PLY export.
 렌더링 결과 이미지 저장 (Depth, Normal, Semantic 각 2~3장 + GT RGB 참고용).
 웹 뷰어 또는 PLY에서 3D 클래스별 시각화 캡처도.
+
+mIoU가 낮으면(< 0.50) 다음 순서로 개선 시도:
+1. class-balanced weighting 적용: inverse frequency weight 또는 focal loss (Roof 비율이 5.1%로 매우 낮음)
+2. λ_sem 조정 (0.05~0.5 범위)
+3. seg_maps 자체 품질 개선 (Phase 2-A의 threshold 조정, confidence filtering 등 — MEMORY.md 참조)
+
 /results/phase2c/REPORT.md 작성 (정량 + 정성 이미지 포함).
 CLAUDE.md 진행 상태 업데이트.
 ```
@@ -519,7 +569,9 @@ YYYY-MM-DD
 | PSNR | xx.x dB (Phase 3-C only) | — | — |
 
 ## 정성적 결과
-(렌더링 이미지, 3D 시각화 캡처 등을 삽입)
+데이터셋 전체에서 다양한 장면을 선별하여 제시 (초반/중반/후반 균등 분포, 8~9장 이상).
+이미지는 `/results/phaseX/images/`에 저장하고 상대 경로로 참조.
+각 이미지에 구체적 캡션을 포함: 어떤 구조물이 어떤 결과로 나왔는지 설명.
 
 ### 렌더링 결과
 ![Depth 맵](images/depth_render.png)

@@ -44,7 +44,7 @@ PlanarSplatting은 L_photo 없이 기하학적 손실(L_depth, L_normal)만으�
 
 | 파라미터 | 차원 | 의미 | 관련 손실 |
 |----------|------|------|-----------|
-| **f_i** | **3** | **의미론적 특징** | **L_sem, L_mutual** |
+| **f_i** | **4** | **의미론적 특징 (bg/roof/wall/ground)** | **L_sem, L_mutual** |
 
 ### 파라미터-손실 매핑 (기본 설계: L_photo 미포함)
 
@@ -148,10 +148,16 @@ L_mutual = Σ_i [ p_wall(i) · L_vert(n_i) + p_roof(i) · L_slope(n_i) + p_groun
 ```
 - p_c(i) = softmax(f_i)[c] : 프리미티브 i의 클래스 c 확률
 - n_i : R_i에서 유도된 법선 벡터
-- e_z = [0, 0, 1] : 수직(중력) 방향
+- e_z = 중력 방향 단위벡터 (COLMAP world frame에서 gravity ≈ -Y → e_z ≈ [0, -1, 0]. **[0,0,1]이 아님!**)
 - L_vert(n) = (n · e_z)² : 법선이 수평이면 0 → 벽면에 적합 (벽 법선은 수평이어야)
 - L_horiz(n) = (1 - |n · e_z|)² : 법선이 수직이면 0 → 지면에 적합 (지면 법선은 수직이어야)
-- L_slope(n) : 인접 지붕면들 간의 경사 일관성 강제. 각도를 미리 고정하지 않고, 데이터로부터 학습된 분류 확률에 기반하여 적응적으로 정규화 → 비정형 건물에도 대응 가능
+- L_slope(n) = relu(τ − (n · e_z)²)² : **단측 wall exclusion**. τ=0.15.
+  - roof로 분류된 프리미티브의 법선이 지나치게 수평(wall-like)이면 penalty
+  - flat roof (수직 법선, (n·e_z)²≈1)에는 penalty 없음 → flat roof와 ground의 법선이 동일한 경우에도 L_mutual이 무해하게 퇴화
+  - flat roof vs ground 구분은 L_sem이 담당 (2D GT + multi-view consistency)
+
+### L_mutual은 렌더링과 독립
+L_mutual은 **per-primitive softmax(f_i)**와 **per-primitive n_i**를 직접 사용하여 계산된다. rasterizer를 통한 렌더링(alpha-blending)은 거치지 않으므로, 렌더링 순서나 occlusion에 무관하다. 반면 L_sem은 colors_precomp에 raw f_i를 전달하여 rasterizer가 alpha-blend한 결과에 softmax → CrossEntropyLoss를 적용한다. 즉 L_sem만 렌더링 경로를 사용하고, L_mutual은 프리미티브 레벨에서 직접 작동한다.
 
 ### Gradient 방향 1: ∂L_mutual/∂R_i (의미론 → 기하)
 "wall 확률이 높은 프리미티브의 법선을 수평으로 밀어라"
@@ -188,37 +194,76 @@ PCGrad/CAGrad 같은 gradient surgery 대신 시간 축 분리로 충돌 회피.
 - 방어: L_sem이 독립적으로 2D GT와의 일치를 강제 → p_wall이 부적절하게 줄면 L_sem이 복원
 - 추가: entropy regularization, class-balanced weighting (필요 시)
 
+### 클래스 불균형 (seg_maps 실측 — DJI pitch 기반 최종)
+현재 seg_maps coverage (180장 평균): Roof 5.1%, Wall 23.0%, Ground 19.7%, Background 52.3%.
+- Background(=ignore) 비율이 높아 유효 라벨 밀도가 낮음 (47.7% coverage)
+- Roof가 특히 적음 (전체의 5.1%, 유효 라벨 중 ~11%)
+  - 원인: oblique view에서 MVS 퇴화 법선(|dot|≈|sin(pitch)|=0.755)이 ambiguous zone → 보수적 threshold(0.85) 필요
+  - Roof 부족은 L_mutual이 기하→의미론 방향으로 보완하도록 설계됨
+- **Phase 2-C에서 class-balanced weighting** (inverse frequency 또는 focal loss) 검토 필요
+- 근본 원인: MVS normal 부재 이미지(80/180)는 text-only fallback (roof/wall 구분 불가)
+
+### Oblique View 한계와 대응 전략
+
+**한계:** Oblique view(pitch≈-49°)에서 roof가 적게 보이는 것은 촬영 조건의 본질적 한계.
+- Roof 2D label이 부족 → L_sem의 roof supervision 약함
+- 퇴화 MVS normal이 모든 view에서 발생 → multi-view consistency로도 교정 한계
+- Wall은 "seg label 정확(ambiguous→wall) + L_mutual 교정" 경로가 살아있으나, Roof는 두 경로 모두 약함
+
+**학습 단계 대응 (Phase 2-C~3):**
+1. Class-balanced weighting (inverse frequency): Roof의 적은 label에 높은 가중치
+2. L_mutual의 기하→의미론 방향: 수평 법선을 가진 primitive를 roof로 분류하도록 유도
+3. L_geo (L_normal_consistency): depth 유도 normal로 퇴화 MVS normal을 간접 교정
+
+**Seg map 개선 대안 (Phase 2-C에서 mIoU 미달 시):**
+1. Text-only 80장에 multi-prompt voting (roof/wall 별도 검출 후 score 합산)
+2. Pitch-adaptive threshold: 이미지별 |sin(pitch)| + margin으로 degenerate 경계 조정
+3. Nadir view 혼합 촬영 (향후 데이터 확장 시)
+
+**논문 기술 방향:** "oblique 전용 데이터셋에서의 한계 + nadir 혼합 시 개선 가능성"으로 기술.
+
 ---
 
-## Ablation 설계
+## Ablation 설계 — 통합 번호 체계 (a)~(i)
 
-### Core Ablation (스케치 4.4.1 — 전체 접근법 검증)
+### Core Ablation (a)~(d): 전체 접근법 검증 (스케치 4.4.1)
 
 | 조건 | 손실 구성 | 의미론 헤드 | 검증하려는 것 |
 |------|----------|-----------|-------------|
-| (a) Geo Only | L_depth + L_normal + L_geo | 없음 | 기하 전용 baseline |
-| (b) Sem Only | L_depth + L_normal + L_sem | 있음 | L_geo 없이 의미론만 추가 효과 |
-| (c) Independent | L_depth + L_normal + L_geo + L_sem (λ_m=0) | 있음 | 독립 최적화 baseline |
-| (d) Joint | L_depth + L_normal + L_geo + L_sem + L_mutual | 있음 | 양방향 상호 보강 효과 |
+| **(a)** Geo Only | L_depth + L_normal + L_geo | 없음 | 기하 전용 baseline |
+| **(b)** Sem Only | L_depth + L_normal + L_sem | 있음 | L_geo 없이 의미론만 추가 효과 |
+| **(c)** Independent | L_depth + L_normal + L_geo + L_sem (λ_m=0) | 있음 | 독립 최적화 baseline |
+| **(d)** Joint | L_depth + L_normal + L_geo + L_sem + L_mutual | 있음 | 양방향 상호 보강 효과 |
 
 핵심 비교: **(c) vs (d)** — 유일한 차이가 L_mutual이므로, (d)가 (c)보다 우수하면 양방향 상호 보강 효과 직접 입증.
 추가 비교: (a) vs (c) — 의미론 헤드 추가가 기하에 미치는 영향 (간접 효과).
 
-### Directional Ablation (방향별 메커니즘 검증)
+### Directional Ablation (e)~(f): 방향별 메커니즘 검증 (기여2 핵심)
 
 | 조건 | 설정 | 검증하려는 것 |
 |------|------|-------------|
-| (e) Sem→Geo only | softmax(f_i).detach() in L_mutual | R_i만 gradient. 의미론→기하 단방향 |
-| (f) Geo→Sem only | n_i.detach() in L_mutual | f_i만 gradient. 기하→의미론 단방향 |
+| **(e)** Sem→Geo only | softmax(f_i).detach() in L_mutual | R_i만 gradient. 의미론→기하 단방향 |
+| **(f)** Geo→Sem only | n_i.detach() in L_mutual | f_i만 gradient. 기하→의미론 단방향 |
 
 핵심 비교: **(d) vs (e) vs (f)** — 양방향이 각 단방향보다 우수한지. (d)의 개선 > (e) + (f)이면 시너지.
+※ 스케치 원본에서 (e),(f)는 L_photo 실험이었으나 본 설계에서는 Directional ablation으로 재배치 (기여2 "양방향"의 핵심 증거이므로 우선순위 상향).
 
-### Warmup Ablation
+### Warmup Ablation: (d) vs (g)
 
 | 조건 | 설정 | 검증하려는 것 |
 |------|------|-------------|
-| (d) | warmup 적용 (기본) | 3단계 curriculum |
-| (d-nowarmup) | warmup 없이 λ_m 즉시 적용 | warmup의 필요성 |
+| **(d)** Joint (기본) | warmup 적용 (3단계 curriculum) | baseline (위 Core의 (d)와 동일) |
+| **(g)** No-warmup | warmup 없이 λ_m 즉시 적용 | warmup 필요성 검증 |
+
+### L_photo Ablation (h)~(i): 선택적 추가 (스케치 4.4.2 → core 이후)
+
+| 조건 | 설정 | 검증하려는 것 |
+|------|------|-------------|
+| **(h)** Photo+Indep | (c) + L_photo (λ_m=0) | 색상 추가 시 독립 기하/의미론 |
+| **(i)** Photo+Joint | (d) + L_photo | 색상+양방향 시너지 |
+
+핵심 비교: **(h) vs (i)** — L_photo 존재 하에서도 L_mutual 효과 유지되는지.
+※ (h),(i)는 Phase 3-C에서 수행 (core ablation (a)~(g) 이후).
 
 ### 기대 및 대응
 
