@@ -194,11 +194,13 @@ PCGrad/CAGrad 같은 gradient surgery 대신 시간 축 분리로 충돌 회피.
 - 방어: L_sem이 독립적으로 2D GT와의 일치를 강제 → p_wall이 부적절하게 줄면 L_sem이 복원
 - 추가: entropy regularization, class-balanced weighting (필요 시)
 
-### 클래스 불균형 (seg_maps 실측 — DJI pitch 기반 최종)
-현재 seg_maps coverage (180장 평균): Roof 5.1%, Wall 23.0%, Ground 19.7%, Background 52.3%.
-- Background(=ignore) 비율이 높아 유효 라벨 밀도가 낮음 (47.7% coverage)
-- Roof가 특히 적음 (전체의 5.1%, 유효 라벨 중 ~11%)
-  - 원인: oblique view에서 MVS 퇴화 법선(|dot|≈|sin(pitch)|=0.755)이 ambiguous zone → 보수적 threshold(0.85) 필요
+### 클래스 불균형 (seg_maps 실측 — v10 confident-labels-only)
+현재 seg_maps coverage (180장 평균): Roof 5.9%, Wall 23.4%, Ground 19.5%, Background 51.2%.
+- Background(=ignore) 비율이 높아 유효 라벨 밀도가 낮음 (48.8% coverage)
+- Background에는 두 종류가 포함: (1) SAM 미검출 영역, (2) ambiguous normal(0.3<|dot|≤0.85) 픽셀
+  - Ambiguous → background는 의도적 설계: multi-view consistency trap 방지, L_mutual에 위임
+- Roof가 특히 적음 (전체의 5.9%, 유효 라벨 중 ~12%)
+  - 원인: oblique view에서 roof 노출 제한 + strong threshold(0.85)
   - Roof 부족은 L_mutual이 기하→의미론 방향으로 보완하도록 설계됨
 - **Phase 2-C에서 class-balanced weighting** (inverse frequency 또는 focal loss) 검토 필요
 - 근본 원인: MVS normal 부재 이미지(80/180)는 text-only fallback (roof/wall 구분 불가)

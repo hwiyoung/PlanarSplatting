@@ -210,19 +210,24 @@ CLAUDE.md 진행 상태 업데이트.
 
 **Go/No-Go:** Wall/Ground 시각 검수 80%+ → Go (Roof는 낮아도 허용 — L_mutual이 보완)
 
-**최종 구현 (DJI pitch + camera frame 직접 계산):**
-- Grounded SAM (building + ground) → DJI gimbal pitch로 camera frame gravity 계산 → normal dot product로 roof/wall/ground 분류
-- Normal source: input_data.pth (colmap_to_ps.py가 처리한 MVS normal, [0,1] format)
+**최종 구현 (v10: Confident Labels Only + Ambiguous as Background):**
+- Grounded SAM (building + ground) → DJI gimbal pitch로 camera frame gravity 계산 → depth-derived normal dot product + height-based classification으로 roof/wall/ground 분류
+- Normal source: **smoothed MVS depth → 3D unprojection → finite-diff normals** (camera frame, [-1,1])
+  - MVS PatchMatch normals는 텍스처 없는 facade에서 퇴화 (|dot|≈0.755 uniform) → depth-derived로 전환
+  - MVS depth는 multi-view 삼각측량으로 기하학적 검증됨 → 신뢰할 수 있음
 - Gravity source: DJI EXIF `drone-dji:GimbalPitchDegree` → `gravity_up_cam = [0, -cos(pitch), sin(pitch)]`
-- Two-threshold system: horiz_thresh=0.85 (strong horizontal→roof/ground), wall_thresh=0.3 (strong vertical→wall), ambiguous→zone default
+- Two-threshold system: horiz_thresh=0.85 (strong horizontal), wall_thresh=0.3 (strong vertical)
+- **Ambiguous normals (0.3 < |dot| ≤ 0.85) → background(0)**: multi-view 일관적 오분류 방지, L_mutual에 위임
+- Height-based roof/ground: strong horizontal + elevated → roof, + ground level → ground (Y_ref=0.308)
+- Neighbor propagation: no-depth building 픽셀 → 주변 라벨 majority vote (ambiguous는 propagation 대상 아님)
 - Score-based overlap: building_score > ground_score → building zone
 - COLMAP world frame 불사용 (gravity를 camera frame에서 직접 계산)
 
-**결과:** 100 hybrid + 80 text-only. Roof 5.1%, Wall 23.0%, Ground 19.7%, Coverage 47.7%.
+**결과:** 100 hybrid + 80 text-only. Roof 5.9%, Wall 23.4%, Ground 19.5%, Coverage 48.8%.
 - Wall/Ground 분류 정확 (facade=wall, 도로=ground 일관성 확인)
-- Roof가 낮은 이유: oblique view에서 MVS 퇴화 법선(|dot|≈|sin(pitch)|=0.755)이 ambiguous zone에 위치 → 보수적 threshold(0.85) 필요
-- Roof 부족은 L_mutual이 기하→의미론 방향으로 보완 (설계 의도)
-- 3-class 직접 검출(roof/wall/ground 별도 GDINO) 비교 검증: GDINO가 oblique view에서 roof/facade를 시점별로 혼동 → 2-step이 이론적·실험적으로 우수
+- **Confident labels only**: ambiguous 픽셀 강제 분류하지 않아 multi-view consistency trap 방지
+- 물리적 정확: 고층(facade만)→roof 낮음, 저층(옥상 노출)→roof 높음
+- Ambiguous 영역 → background → L_mutual의 L_slope가 학습 중 기하학적으로 결정 (설계 의도)
 - 시각적 확인: `user_inputs/testset/0_25x/seg_vis/` (빨강=roof, 파랑=wall, 초록=ground 오버레이)
 
 **프롬프트:**
@@ -238,12 +243,12 @@ MVS Hybrid 접근법으로 구현:
    - gravity_up_cam = [0, -cos(pitch), sin(pitch)] (OpenCV 카메라 규약)
    - COLMAP world frame은 사용하지 않음
 3. Building 영역 내에서 |dot(normal_cam, gravity_up_cam)|로 roof/wall 분류:
-   - Two-threshold: > 0.85 → roof(1), ≤ 0.3 → wall(2), 사이 → zone default(building→wall)
-   - 퇴화 법선(|dot|≈|sin(pitch)|) 대응을 위한 보수적 설계
+   - Two-threshold: > 0.85 → roof(1)/ground(3) (height 기준), ≤ 0.3 → wall(2), 사이 → background(0, L_mutual에 위임)
+   - Ambiguous→background: multi-view consistency trap 방지 (v10)
 4. Score-based overlap: building_score > ground_score → building zone으로 배정
 5. Normal 없는 픽셀 → background(0, ignore_index=0)
 6. MVS normal/DJI pitch 없는 이미지 → text-only fallback
-7. Normal source: input_data.pth (colmap_to_ps.py 처리 완료, [0,1] format)
+7. Normal source: **depth-derived** (smoothed MVS depth → 3D → finite-diff, compute_depth_normals() in generate_segmentation.py)
 
 - 입력: 이미지 폴더 + input_data.pth + raw DJI 이미지 (EXIF용)
 - 출력: seg_maps/ (class index png) + seg_vis/ (오버레이 확인용)
@@ -317,9 +322,10 @@ docs/RESEARCH_CONTEXT.md의 "프리미티브 파라미터 전체 구조" 섹션�
 10. 패키지 필요하면 Dockerfile에도 추가
 
 참고 (항공 이미지 특성):
-- seg_maps GT는 Grounded SAM + MVS normal + DJI pitch 기반으로 생성됨 (Phase 2-A). 완벽하지 않은 noisy GT이다.
-- 클래스 불균형: Roof 5.1%, Wall 23.0%, Ground 19.7%, Background 52.3% (180장 평균)
-- Roof가 특히 적음 (유효 라벨 중 ~11%). Oblique view에서 roof가 적게 보이는 본질적 한계 + MVS 퇴화 법선으로 보수적 threshold 필요
+- seg_maps GT는 Grounded SAM + depth-derived normals + DJI pitch 기반으로 생성됨 (Phase 2-A). 완벽하지 않은 noisy GT이다.
+- 클래스 불균형: Roof 5.9%, Wall 23.4%, Ground 19.5%, Background 51.2% (180장 평균, v10)
+- Roof가 특히 적음 (유효 라벨 중 ~12%). Oblique view에서 roof가 적게 보이는 본질적 한계
+- Ambiguous normal(0.3<|dot|≤0.85) 픽셀은 background → L_mutual에 위임 (multi-view consistency trap 방지)
 - L_sem의 multi-view consistency가 2D seg GT 노이즈를 자연스럽게 희석 (같은 3D 프리미티브가 여러 view에서 supervision 받음)
 
 /results/phase2b/REPORT.md 작성 (구현 검증 결과):
@@ -346,9 +352,9 @@ CLAUDE.md 진행 상태 업데이트.
 | Normal cos | Phase 1 대비 ≤ 5% 악화 | > 5% → λ_s 감소 |
 
 **Segmentation 초기값 영향 분석 (Phase 2-A → 2-C 연결):**
-Phase 2-A에서 생성한 seg_maps는 noisy GT이다 (MVS Hybrid: wall/ground 정확, roof 5.1%로 낮음). Phase 2-C 결과 분석 시 다음을 확인:
-- Seg map에서 미분류(background=0)인 영역이 학습에 영향 없는지 (`ignore_index=0` 동작 확인)
-- Roof 클래스의 낮은 비율(5.1%)이 학습 편향을 유발하는지 (class별 프리미티브 수 TensorBoard 확인)
+Phase 2-A에서 생성한 seg_maps는 noisy GT이다 (v10 confident-labels-only: wall/ground 정확, roof 5.9%로 낮지만 coherent, ambiguous→background). Phase 2-C 결과 분석 시 다음을 확인:
+- Seg map에서 미분류(background=0, 51.2%)인 영역이 학습에 영향 없는지 (`ignore_index=0` 동작 확인)
+- Roof 클래스의 낮은 비율(5.9%)이 학습 편향을 유발하는지 (class별 프리미티브 수 TensorBoard 확인)
 - 결과가 불만족스러우면 아래 순서로 seg_maps 개선 검토
 
 **Seg map 개선 전략 (mIoU 미달 시 순서):**
@@ -370,7 +376,7 @@ visualize (color_by class) → PLY export.
 웹 뷰어 또는 PLY에서 3D 클래스별 시각화 캡처도.
 
 mIoU가 낮으면(< 0.50) 다음 순서로 개선 시도:
-1. class-balanced weighting 적용: inverse frequency weight 또는 focal loss (Roof 비율이 5.1%로 매우 낮음)
+1. class-balanced weighting 적용: inverse frequency weight 또는 focal loss (Roof 비율이 5.9%로 매우 낮음)
 2. λ_sem 조정 (0.05~0.5 범위)
 3. seg_maps 자체 품질 개선 (Phase 2-A의 threshold 조정, confidence filtering 등 — MEMORY.md 참조)
 

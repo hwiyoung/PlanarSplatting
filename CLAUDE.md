@@ -155,7 +155,7 @@ python scripts/evaluate.py --checkpoint path/to/latest.pth --compare_with prev_r
 - [x] Phase 0-Setup: 모니터링 환경 구축
 - [x] Phase 0: SfM/MVS 입력 확보 (COLMAP 180장 정합, 100장 학습, Depth MAE=0.067, Normal cos=0.911)
 - [x] Phase 1: MVS Depth+Normal Supervision 교체 (Depth MAE=0.053, Normal cos=0.840 vs MVS GT)
-- [x] Phase 2-A: 2D Segmentation 생성 (MVS Hybrid: Grounded SAM + COLMAP MVS Normal, Go)
+- [x] Phase 2-A: 2D Segmentation 생성 (v10: Confident Labels Only, ambiguous→BG, Roof 5.9%/Wall 23.4%/Ground 19.5%, Go)
 - [ ] Phase 2-B: 의미론적 헤드 구현
 - [ ] Phase 2-C: L_sem 독립 학습
 - [ ] Phase 3-A: L_mutual 구현

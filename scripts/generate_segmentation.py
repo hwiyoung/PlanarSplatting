@@ -1,23 +1,34 @@
 """Generate semantic segmentation maps using Grounded SAM 2.
 
-MVS Hybrid approach (recommended):
+Hybrid approach (recommended):
   1. Grounded SAM detects "building" and "ground/road" regions
-  2. Normal + DJI gimbal pitch splits surfaces by orientation:
-     - All computation in camera frame (no COLMAP world frame needed)
+  2. Depth-derived normals + DJI gimbal pitch split surfaces by orientation:
+     - Smoothed MVS depth → 3D points → finite-diff normals (camera frame)
      - DJI IMU gimbal pitch → gravity direction in camera frame
-     - |dot(normal_cam, gravity_up_cam)| = sin(angle_from_vertical)
+     - |dot(normal_cam, gravity_up_cam)| measures surface horizontality
      - > threshold → horizontal (roof/ground), <= threshold → vertical (wall)
-  3. Normal overrides SAM in ALL zones:
-     - Building-only + horizontal → roof; + vertical → wall
-     - Ground-only + horizontal → ground; + vertical → wall (SAM override)
-     - Overlap + horizontal → ground; + vertical → wall
-  4. Pixels without valid normals → background (ignored in training)
+  3. Two-threshold system (confident labels only):
+     - |dot| > 0.85 → strongly horizontal → roof or ground (decided by height)
+     - |dot| <= 0.3 → strongly vertical (wall)
+     - Ambiguous (0.3-0.85) → background (no label, deferred to L_mutual)
+  4. Height-based roof/ground separation:
+     - Global ground level from dataset-wide flat pixel world Y
+     - Flat + near ground level → ground (corrects SAM zone misclassification)
+     - Flat + elevated → roof
+  5. Building zone without valid depth → neighbor propagation:
+     - Copies majority class from nearby labeled pixels
+     - Correctly handles both nadir (rooftop) and oblique (facade) views
+     - Fallback: pitch-dependent default if no neighbors available
+  6. Pixels not in any SAM zone → background (ignored in training)
 
-Normal source: Normals from input_data.pth (processed by colmap_to_ps.py, verified correct).
-Both MVS and Metric3D normals are stored in (3,H,W) [0,1] format in input_data.pth.
+Why depth-derived normals instead of MVS PatchMatch normals:
+  MVS PatchMatch normals degenerate to camera-facing direction on textureless
+  facades, making all building pixels look similar regardless of actual surface
+  orientation. MVS depth is geometrically verified and reliable — deriving normals
+  from smoothed depth correctly captures large-scale surface orientation.
 
 Gravity source: DJI EXIF gimbal pitch (--raw_image_dir for raw DJI JPGs).
-Fallback: text-only mode for images without DJI EXIF or normals.
+Fallback: text-only mode for images without DJI EXIF or depth.
 
 Class mapping:
     0 = background (unlabeled)
@@ -26,7 +37,7 @@ Class mapping:
     3 = ground / road
 
 Usage:
-    # MVS Hybrid mode (recommended): input_data.pth normals + DJI pitch
+    # Hybrid mode (recommended): depth-derived normals + DJI pitch
     python scripts/generate_segmentation.py \
         --image_dir user_inputs/testset/0_25x/dense/images \
         --output_dir user_inputs/testset/0_25x/seg_maps \
@@ -50,6 +61,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from PIL import Image, ImageDraw
+from scipy.ndimage import gaussian_filter
 from transformers import (
     AutoModelForZeroShotObjectDetection,
     AutoProcessor,
@@ -209,10 +221,152 @@ def compute_gravity_up_cam(pitch_deg: float) -> np.ndarray:
     return np.array([0.0, -math.cos(pitch_rad), math.sin(pitch_rad)])
 
 
+def compute_depth_normals(
+    depth: np.ndarray,
+    intrinsics: np.ndarray,
+    sigma: float = 3.0,
+) -> tuple:
+    """Compute surface normals from smoothed depth map.
+
+    MVS PatchMatch normals degenerate on textureless facades (camera-facing bias).
+    Depth is geometrically verified and reliable — deriving normals from smoothed
+    depth correctly captures large-scale surface orientation.
+
+    Args:
+        depth: (H, W) float32 depth map (0 = invalid).
+        intrinsics: (3, 3) camera intrinsic matrix.
+        sigma: Gaussian smoothing sigma for depth (larger = smoother normals).
+
+    Returns:
+        normal_cam: (3, H, W) float32 unit normals in camera frame, [-1, 1].
+        valid: (H, W) bool mask of valid normals.
+        d_smooth: (H, W) float64 smoothed depth map.
+    """
+    H, W = depth.shape
+    fx, fy = intrinsics[0, 0], intrinsics[1, 1]
+    cx, cy = intrinsics[0, 2], intrinsics[1, 2]
+
+    # NaN-aware Gaussian smoothing of depth
+    d = depth.copy().astype(np.float64)
+    mask = d > 0
+    d[~mask] = 0.0
+    d_smooth = gaussian_filter(d, sigma=sigma)
+    w_smooth = gaussian_filter(mask.astype(np.float64), sigma=sigma)
+    d_smooth = np.where(w_smooth > 0.1, d_smooth / w_smooth, 0.0)
+
+    # Unproject to 3D points in camera frame
+    u, v = np.meshgrid(np.arange(W, dtype=np.float64),
+                        np.arange(H, dtype=np.float64))
+    X = (u - cx) * d_smooth / fx
+    Y = (v - cy) * d_smooth / fy
+    Z = d_smooth
+
+    # Surface normal = cross(dP/du, dP/dv)
+    dXdu, dXdv = np.gradient(X, axis=1), np.gradient(X, axis=0)
+    dYdu, dYdv = np.gradient(Y, axis=1), np.gradient(Y, axis=0)
+    dZdu, dZdv = np.gradient(Z, axis=1), np.gradient(Z, axis=0)
+
+    nx = dYdu * dZdv - dZdu * dYdv
+    ny = dZdu * dXdv - dXdu * dZdv
+    nz = dXdu * dYdv - dYdu * dXdv
+
+    mag = np.sqrt(nx**2 + ny**2 + nz**2)
+    valid = (d_smooth > 0) & (mag > 1e-8)
+
+    normal_cam = np.zeros((3, H, W), dtype=np.float32)
+    normal_cam[0] = np.where(valid, nx / (mag + 1e-8), 0).astype(np.float32)
+    normal_cam[1] = np.where(valid, ny / (mag + 1e-8), 0).astype(np.float32)
+    normal_cam[2] = np.where(valid, nz / (mag + 1e-8), 0).astype(np.float32)
+
+    return normal_cam, valid, d_smooth
+
+
+def unproject_to_world_Y(
+    depth_smooth: np.ndarray,
+    intrinsics: np.ndarray,
+    c2w: np.ndarray,
+    mask: np.ndarray,
+) -> np.ndarray:
+    """Unproject masked pixels to world Y coordinate (elevation).
+
+    In COLMAP world frame, gravity ≈ -Y, so lower Y = higher elevation.
+
+    Returns:
+        world_Y_map: (H, W) float32, NaN where mask is False.
+    """
+    H, W = depth_smooth.shape
+    fx, fy = intrinsics[0, 0], intrinsics[1, 1]
+    cx, cy = intrinsics[0, 2], intrinsics[1, 2]
+
+    u, v = np.meshgrid(np.arange(W, dtype=np.float64),
+                        np.arange(H, dtype=np.float64))
+    Xc = np.where(mask, (u - cx) * depth_smooth / fx, 0)
+    Yc = np.where(mask, (v - cy) * depth_smooth / fy, 0)
+    Zc = np.where(mask, depth_smooth, 0)
+
+    # P_world = c2w @ P_cam; extract Y row
+    world_Y = c2w[1, 0] * Xc + c2w[1, 1] * Yc + c2w[1, 2] * Zc + c2w[1, 3]
+    world_Y_map = np.where(mask, world_Y, np.nan).astype(np.float32)
+    return world_Y_map
+
+
+def _propagate_from_neighbors(
+    seg_map: np.ndarray,
+    unlabeled: np.ndarray,
+    pitch_deg: float,
+    radius: int = 15,
+) -> np.ndarray:
+    """Fill unlabeled building pixels from nearby labeled pixels.
+
+    For each unlabeled pixel, find the majority class among labeled pixels
+    within a square window of given radius. Falls back to pitch-based default
+    if no labeled neighbors exist.
+
+    Uses uniform_filter on per-class indicator maps for efficient computation.
+    """
+    from scipy.ndimage import uniform_filter
+
+    seg = seg_map.copy()
+    size = 2 * radius + 1
+
+    # Count labeled neighbors for each class
+    labeled = seg > 0
+    counts = {}
+    for c in [1, 2, 3]:
+        indicator = ((seg == c) & labeled).astype(np.float32)
+        counts[c] = uniform_filter(indicator, size=size, mode='constant')
+
+    # For each unlabeled pixel, pick the majority class
+    best_class = np.zeros_like(seg)
+    best_count = np.zeros(seg.shape, dtype=np.float32)
+    for c in [1, 2, 3]:
+        better = counts[c] > best_count
+        best_class[better] = c
+        best_count[better] = counts[c][better]
+
+    # Apply: propagate where we have neighbors, otherwise pitch-based fallback
+    has_neighbors = best_count > 0
+    seg[unlabeled & has_neighbors] = best_class[unlabeled & has_neighbors]
+
+    # Fallback for isolated pixels with no labeled neighbors
+    still_unlabeled = unlabeled & ~has_neighbors
+    if still_unlabeled.any():
+        seg[still_unlabeled] = 1 if pitch_deg <= -60.0 else 2
+
+    return seg
+
+
 def process_image_hybrid(
     image_path: str,
     normal_cam: np.ndarray,
+    valid_normal: np.ndarray,
     gravity_up_cam: np.ndarray,
+    pitch_deg: float,
+    depth_smooth: np.ndarray,
+    intrinsics: np.ndarray,
+    c2w: np.ndarray,
+    ground_Y_ref: float,
+    ground_Y_tol: float,
     gdino_processor, gdino_model,
     sam2_processor, sam2_model,
     device: str,
@@ -220,19 +374,26 @@ def process_image_hybrid(
     horiz_thresh: float = 0.85,
     wall_thresh: float = 0.3,
 ) -> np.ndarray:
-    """Hybrid: Grounded SAM (building/ground) + two-threshold normal classification.
+    """Hybrid: Grounded SAM + normal classification + height-based roof/ground.
 
-    All computation in camera frame. Normals from input_data.pth ([0,1] encoded).
-    DJI pitch gives gravity direction in camera frame.
+    Classification pipeline:
+    1. Grounded SAM detects building/ground zones
+    2. Depth-derived normals classify horizontal/vertical/ambiguous
+    3. Height (world Y) separates roof from ground among horizontal surfaces:
+       - Flat + near ground level → ground (corrects SAM zone misclassification)
+       - Flat + elevated above ground → roof
+    4. Building zone without valid normals → neighbor propagation:
+       - Copies majority class from nearby labeled pixels (radius=15)
+       - Crosswalk no-depth pixels → neighbors are ground → ground
+       - Rooftop no-depth pixels → neighbors are roof → roof
+       - Facade no-depth pixels → neighbors are wall → wall
+       - Fallback if no neighbors: oblique → wall, near-nadir → roof
 
-    Two-threshold system handles degenerate MVS normals on facades
-    (which have |dot| ≈ |sin(pitch)|, falling in the ambiguous zone):
-    - |dot| > horiz_thresh (0.85): strongly horizontal → roof/ground
+    Two-threshold system with uncertain-as-unlabeled:
+    - |dot| > horiz_thresh (0.85): strongly horizontal → roof or ground (by height)
     - |dot| <= wall_thresh (0.3): strongly vertical → wall
-    - Ambiguous: zone-dependent default
-      - Building zone → wall (oblique view: visible building surface = facade)
-      - Ground zone → ground (trust SAM)
-      - Overlap zone → ground (trust SAM)
+    - Ambiguous (0.3 < |dot| ≤ 0.85): left as background (no L_sem supervision)
+      → avoids multi-view consistent wrong labels; defers to L_mutual geometric prior
     """
     image = Image.open(image_path).convert("RGB")
     w, h = image.size
@@ -264,21 +425,14 @@ def process_image_hybrid(
                 ground_scores[update] = scores[i]
 
     # Step 2: Compute dot(normal_cam, gravity_up_cam) directly in camera frame
-    # normal_cam: (3, H_n, W_n) in [0,1] format (from input_data.pth)
-    normal_dec = 2.0 * normal_cam - 1.0  # decode [0,1] → [-1,1]
-    nh, nw = normal_dec.shape[1], normal_dec.shape[2]
+    nh, nw = normal_cam.shape[1], normal_cam.shape[2]
 
-    # Normalize normals in camera frame (no coordinate transform needed)
-    n_flat = normal_dec.reshape(3, -1)  # (3, N) in camera frame
-    n_mag = np.sqrt((n_flat ** 2).sum(axis=0))
-    valid = n_mag > 0.1
-    n_norm = n_flat / (n_mag[None, :] + 1e-8)
-
-    # dot(normal_cam, gravity_up_cam): measures alignment with gravity
-    # abs() handles normal sign ambiguity (z>0 vs z<0)
-    dot_up = (n_norm * gravity_up_cam[:, None]).sum(axis=0)  # (N,)
-    dot_up_map = np.abs(dot_up.reshape(nh, nw))
-    valid_map = valid.reshape(nh, nw)
+    dot_up_map = np.abs(
+        normal_cam[0] * gravity_up_cam[0]
+        + normal_cam[1] * gravity_up_cam[1]
+        + normal_cam[2] * gravity_up_cam[2]
+    )
+    valid_map = valid_normal
 
     # Resize masks and scores to normal resolution if needed
     if (h, w) != (nh, nw):
@@ -296,7 +450,17 @@ def process_image_hybrid(
         building_sc = building_scores
         ground_sc = ground_scores
 
-    # Step 3: Compose seg map at normal resolution
+    # Step 3: Compute world Y (elevation) for height-based classification
+    world_Y_map = unproject_to_world_Y(depth_smooth, intrinsics, c2w,
+                                        mask=(depth_smooth > 0))
+    # Resize to normal resolution if needed
+    if (h, w) != (nh, nw):
+        world_Y_map = np.array(Image.fromarray(world_Y_map).resize(
+            (nw, nh), Image.NEAREST))
+
+    is_at_ground_level = ~np.isnan(world_Y_map) & (world_Y_map > ground_Y_ref - ground_Y_tol)
+
+    # Step 4: Compose seg map at normal resolution
     seg_map = np.zeros((nh, nw), dtype=np.uint8)
 
     # Zone classification with score-based overlap resolution
@@ -306,10 +470,7 @@ def process_image_hybrid(
     only_building = (building_r & ~ground_r) | bld_wins
     only_ground = (ground_r & ~building_r) | gnd_wins
 
-    # Two-threshold system: zone-dependent classification
-    # |dot| > horiz_thresh (0.85): strongly horizontal (flat roof/ground)
-    # |dot| <= wall_thresh (0.3): strongly vertical (definite wall)
-    # Between: ambiguous (degenerate MVS normals on facades have |dot|≈|sin(pitch)|)
+    # Normal orientation classification
     is_strong_horiz = valid_map & (dot_up_map > horiz_thresh)
     is_strong_wall = valid_map & (dot_up_map <= wall_thresh)
     is_ambiguous = valid_map & ~is_strong_horiz & ~is_strong_wall
@@ -318,12 +479,26 @@ def process_image_hybrid(
     seg_map[only_ground & is_strong_wall] = 2         # strong wall overrides SAM
     seg_map[only_ground & ~is_strong_wall] = 3        # everything else → ground
 
-    # Building zones (including overlap where building score wins):
-    # Default ambiguous to wall (oblique view = visible building surface is facade)
-    seg_map[only_building & is_strong_horiz] = 1      # strongly horizontal → roof
+    # Building zones: normal + height-based classification
+    # Strong horizontal: use height to decide roof vs ground
+    bld_horiz = only_building & is_strong_horiz
+    seg_map[bld_horiz & is_at_ground_level] = 3       # flat + ground level → ground
+    seg_map[bld_horiz & ~is_at_ground_level] = 1      # flat + elevated → roof
+    # Strong vertical: wall regardless of height
     seg_map[only_building & is_strong_wall] = 2       # strongly vertical → wall
-    seg_map[only_building & is_ambiguous] = 2         # ambiguous → wall (facade likely)
-    # Building without valid normal → stay 0 (background, ignored in training)
+    # Ambiguous normals (0.3 < |dot| ≤ 0.85): leave as background (no label)
+    # Rationale: forcing wall/roof here creates multi-view consistent wrong labels
+    # that L_sem reinforces and L_mutual can't correct. Instead, defer to L_mutual's
+    # geometric prior to determine the class during training optimization.
+    # (is_ambiguous pixels in building zone stay seg_map=0 → masked from L_sem)
+
+    # Building zone without valid normal → propagate from nearby labeled pixels
+    # This fills depth-gap regions (textureless facades, MVS failures) from neighbors,
+    # but does NOT fill ambiguous-normal pixels (which are intentionally unlabeled).
+    no_label_no_normal = (seg_map == 0) & only_building & ~valid_map
+    if no_label_no_normal.any():
+        seg_map = _propagate_from_neighbors(
+            seg_map, no_label_no_normal, pitch_deg, radius=15)
 
     # Resize back to original image resolution
     if (h, w) != (nh, nw):
@@ -454,25 +629,83 @@ def main():
         else:
             print(f"  WARNING: No DJI pitch found in {raw_dir}")
 
-    # ── Load normals for hybrid mode ──
+    # ── Load depth + intrinsics + extrinsics for hybrid mode ──
     hybrid_mode = False
-    normal_lookup = {}
+    depth_lookup = {}
+    intrinsics_lookup = {}
+    c2w_lookup = {}
 
     if args.input_data and Path(args.input_data).exists():
-        print(f"Loading normals from {args.input_data} (hybrid mode)")
+        print(f"Loading depth + intrinsics + extrinsics from {args.input_data} (hybrid mode)")
         data = torch.load(args.input_data, map_location="cpu")
 
-        # Load normals from input_data.pth: (3, H, W) in [0,1] format
-        # Both MVS and Metric3D normals are stored in this format by colmap_to_ps.py
         for idx in range(len(data["image_paths"])):
             stem = os.path.splitext(os.path.basename(data["image_paths"][idx]))[0]
-            n = data["normal"][idx]
-            if isinstance(n, torch.Tensor):
-                n = n.numpy()
-            normal_lookup[stem] = n
-        print(f"  Loaded normals for {len(normal_lookup)} images")
+            d = data["depth"][idx]
+            k = data["intrinsics"][idx]
+            e = data["extrinsics"][idx]
+            if isinstance(d, torch.Tensor):
+                d = d.numpy()
+            if isinstance(k, torch.Tensor):
+                k = k.numpy()
+            if isinstance(e, torch.Tensor):
+                e = e.numpy()
+            depth_lookup[stem] = d
+            intrinsics_lookup[stem] = k
+            c2w_lookup[stem] = e
+        print(f"  Loaded depth for {len(depth_lookup)} images")
 
         hybrid_mode = True
+
+    # ── Pre-compute global ground level from all flat pixels ──
+    ground_Y_ref = 0.0
+    ground_Y_tol = 0.15  # pixels within this tolerance of ground level → ground
+
+    if hybrid_mode and pitch_lookup:
+        print("  Computing global ground level from dataset...")
+        all_flat_Y = []
+        for stem in depth_lookup:
+            if stem not in pitch_lookup:
+                continue
+            d = depth_lookup[stem]
+            k = intrinsics_lookup[stem]
+            c2w = c2w_lookup[stem]
+            pitch = pitch_lookup[stem]
+
+            gravity_up = compute_gravity_up_cam(pitch)
+            normal_cam, valid_n, d_smooth = compute_depth_normals(d, k, sigma=3.0)
+
+            dot_abs = np.abs(
+                normal_cam[0] * gravity_up[0]
+                + normal_cam[1] * gravity_up[1]
+                + normal_cam[2] * gravity_up[2]
+            )
+            is_flat = valid_n & (dot_abs > 0.85)
+
+            if is_flat.sum() < 100:
+                continue
+
+            world_Y_map = unproject_to_world_Y(d_smooth, k, c2w,
+                                                mask=(d_smooth > 0))
+            flat_Y = world_Y_map[is_flat]
+            flat_Y = flat_Y[~np.isnan(flat_Y)]
+
+            # Subsample for memory
+            if len(flat_Y) > 5000:
+                flat_Y = np.random.choice(flat_Y, 5000, replace=False)
+            all_flat_Y.extend(flat_Y.tolist())
+
+        if all_flat_Y:
+            all_flat_Y = np.array(all_flat_Y)
+            # Ground is the most common flat surface (roads) → high Y values
+            # Use 75th percentile as ground level reference
+            ground_Y_ref = float(np.percentile(all_flat_Y, 75))
+            print(f"  Global ground level: Y_ref={ground_Y_ref:.3f} "
+                  f"(tol={ground_Y_tol}, median={np.median(all_flat_Y):.3f}, "
+                  f"75pct={np.percentile(all_flat_Y, 75):.3f}, "
+                  f"95pct={np.percentile(all_flat_Y, 95):.3f})")
+        else:
+            print("  WARNING: No flat pixels found, using ground_Y_ref=0.0")
 
     # Load models
     gdino_proc, gdino_model, sam2_proc, sam2_model = load_models(
@@ -488,14 +721,20 @@ def main():
         print(f"[{i+1}/{len(image_paths)}] {img_path.name}", end=" ... ")
 
         stem = img_path.stem
-        has_normal = hybrid_mode and stem in normal_lookup
+        has_depth = hybrid_mode and stem in depth_lookup
         has_pitch = stem in pitch_lookup
 
-        if has_normal and has_pitch:
+        if has_depth and has_pitch:
+            # Compute depth-derived normals (smoothed depth → 3D → finite diff)
+            normal_cam, valid_normal, depth_smooth = compute_depth_normals(
+                depth_lookup[stem], intrinsics_lookup[stem], sigma=3.0)
             gravity_up_cam = compute_gravity_up_cam(pitch_lookup[stem])
             seg_map = process_image_hybrid(
                 str(img_path),
-                normal_lookup[stem], gravity_up_cam,
+                normal_cam, valid_normal, gravity_up_cam,
+                pitch_lookup[stem],
+                depth_smooth, intrinsics_lookup[stem], c2w_lookup[stem],
+                ground_Y_ref, ground_Y_tol,
                 gdino_proc, gdino_model, sam2_proc, sam2_model,
                 args.device, args.text_threshold,
             )
@@ -509,8 +748,8 @@ def main():
             )
             n_textonly += 1
             reason = []
-            if not has_normal:
-                reason.append("no normal")
+            if not has_depth:
+                reason.append("no depth")
             if not has_pitch:
                 reason.append("no pitch")
             mode_str = f"text({','.join(reason)})"
