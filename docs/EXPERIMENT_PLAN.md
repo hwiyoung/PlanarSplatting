@@ -164,7 +164,7 @@ COLMAP 출력을 그 형식으로 변환해줘:
 
 변환 완료 후 컨테이너 내부에서 학습 실행하고 evaluate.py, visualize_primitives.py로 결과 확인.
 렌더링 결과 이미지도 저장해줘 (Depth, Normal 각 2~3장 + GT RGB 참고용).
-/results/phase0/REPORT.md를 EXPERIMENT_PLAN.md 하단의 REPORT 템플릿에 따라 작성해줘.
+results/phase0/REPORT.md를 EXPERIMENT_PLAN.md 하단의 REPORT 템플릿에 따라 작성해줘.
 CLAUDE.md 진행 상태 업데이트.
 ```
 
@@ -198,7 +198,7 @@ docs/EXPERIMENT_PLAN.md의 Phase 1을 진행해줘. 컨테이너 내부에서 �
 
 학습(5000 iter) → evaluate.py로 Phase 0과 비교 → visualize (color_by normal) PLY export.
 렌더링 결과 이미지 저장 (Depth, Normal 각 2~3장 + GT RGB 참고용, Phase 0과 비교 가능하게).
-/results/phase1/REPORT.md 작성 (정량 지표 + 정성적 비교 이미지 포함).
+results/phase1/REPORT.md 작성 (정량 지표 + 정성적 비교 이미지 포함).
 CLAUDE.md 진행 상태 업데이트.
 ```
 
@@ -263,7 +263,7 @@ python scripts/generate_segmentation.py \
 
 실행 후 seg_vis/에서 여러 장 확인. 특히 건물 facade가 wall(파랑)로 분류되는지 확인.
 
-/results/phase2a/REPORT.md 작성:
+results/phase2a/REPORT.md 작성:
 - 정량 지표: 전체 180장 coverage, 클래스별 비율 (mean/min/max)
 - 정성적 결과: 데이터셋 전체에서 다양한 장면 8~9장 선별 (초반/중반/후반 균등 분포)
   - seg_vis/ 이미지를 results/phase2a/images/에 복사
@@ -300,17 +300,33 @@ docs/RESEARCH_CONTEXT.md의 "프리미티브 파라미터 전체 구조" 섹션�
 1. 프리미티브 파라미터 정의 파일/클래스
 2. 렌더러에서 alpha-blending 가중치 접근 방법
 3. adaptive density control 위치
+4. CUDA rasterizer의 colors_precomp 채널 수 제한 확인 (config.h의 NUM_CHANNELS)
+   - NUM_CHANNELS=3 하드코딩이면 K=4 feature 전달 불가
+   - 해결: config.h에서 NUM_CHANNELS를 4로 변경 후 재빌드 (커널 로직 수정 아닌 컴파일 상수 변경)
+   - 또는 K=3 리매핑: roof→0, wall→1, ground→2, bg→ignore_index=-100 (CUDA 수정 완전 회피)
+
+데이터 로딩 (seg_maps 학습 파이프라인 통합):
+- seg_maps 위치: user_inputs/testset/0_25x/seg_maps/ (class index PNG, 0-3)
+- input_data.pth에 'segmentation' 키 추가 (colmap_to_ps.py 수정) 또는 scene_dataset_demo.py에서 직접 로드
+- scene_dataset_demo.py: ViewInfo.gt_info에 'seg_map' (hw,) long tensor 추가
+- 리사이즈 시 cv2.INTER_NEAREST 사용 (class index이므로 보간 금지)
+- seg_maps는 100장(0615-0714)만 학습 이미지와 매칭됨 (나머지 80장은 input_data.pth 범위 밖)
+- trainer.py에서 view_info.seg_map 접근하여 L_sem 계산
 
 구현:
 1. f_i (K=4, learnable) 추가 — seg_maps class ID가 0-3이고 CrossEntropyLoss(ignore_index=0) 사용하므로 출력 4채널 필요. 균등 분포 초기화, optimizer 등록, density control (split→복사, prune→제거)
 2. semantic 렌더링 (Option A — raw feature blend → softmax):
    - raw f_i를 colors_precomp에 전달 → rasterizer가 alpha-blend → 결과에 softmax 적용
-   - 즉 softmax는 렌더링 이후(2D pixel 레벨)에서 수행. rasterizer 코드 수정 금지 (CUDA 커널 수정 금지)
+   - 즉 softmax는 렌더링 이후(2D pixel 레벨)에서 수행
+   - CUDA 커널 로직(forward.cu/backward.cu) 수정 금지. config.h NUM_CHANNELS 변경은 허용 (컴파일 상수)
+   - NUM_CHANNELS=4로 변경 시: 기존 colors_precomp가 (N,3)이므로 forward pass 수정 필요
+     → --enable_semantic ON: f_i (N,4) 전달, OFF: torch.rand(N,4) 전달 (기존 기능 보존)
    - L_mutual은 렌더링을 거치지 않는다 — per-primitive softmax(f_i)와 n_i를 직접 사용 (RESEARCH_CONTEXT.md 참조)
 3. L_sem = CrossEntropyLoss(ignore_index=0), --enable_semantic --lambda_sem 0.1
 4. L_geo = L_normal_consistency (렌더링 normal vs depth 유도 normal 일치), --lambda_geo 0.1 (기본값 0 → 기존 동작 보존)
    - docs/RESEARCH_CONTEXT.md의 "L_geo" 섹션 참조
    - allmap[0](depth)에서 finite diff로 normal 유도 → allmap[2:5](rendered normal)과 비교
+   - Depth discontinuity에서 노이즈 방지: depth gradient가 큰 edge 픽셀 제외 (2DGS/PGSR 표준 구현 참조)
    - L_planar, L_adj는 CUDA primitive ID 채널 필요 → Phase 4에서 구현
 5. TensorBoard: L_sem, L_geo, 클래스별 프리미티브 수(매 100 iter), Semantic vs GT(매 500 iter)
 6. visualize_primitives.py에 --color_by class (roof=빨강, wall=파랑, ground=회색)
@@ -328,7 +344,7 @@ docs/RESEARCH_CONTEXT.md의 "프리미티브 파라미터 전체 구조" 섹션�
 - Ambiguous normal(0.3<|dot|≤0.85) 픽셀은 background → L_mutual에 위임 (multi-view consistency trap 방지)
 - L_sem의 multi-view consistency가 2D seg GT 노이즈를 자연스럽게 희석 (같은 3D 프리미티브가 여러 view에서 supervision 받음)
 
-/results/phase2b/REPORT.md 작성 (구현 검증 결과):
+results/phase2b/REPORT.md 작성 (구현 검증 결과):
 - gradient check 결과 값 (∂L_sem/∂f_i, ∂L_sem/∂R_i)
 - L_geo(L_normal_consistency) 구현 확인 (depth→finite diff normal vs rendered normal)
 - 수정/추가한 파일 목록
@@ -380,7 +396,7 @@ mIoU가 낮으면(< 0.50) 다음 순서로 개선 시도:
 2. λ_sem 조정 (0.05~0.5 범위)
 3. seg_maps 자체 품질 개선 (Phase 2-A의 threshold 조정, confidence filtering 등 — MEMORY.md 참조)
 
-/results/phase2c/REPORT.md 작성 (정량 + 정성 이미지 포함).
+results/phase2c/REPORT.md 작성 (정량 + 정성 이미지 포함).
 CLAUDE.md 진행 상태 업데이트.
 ```
 
@@ -415,7 +431,7 @@ docs/RESEARCH_CONTEXT.md의 L_mutual 수식과 gradient 분석을 반드시 참�
    - RESEARCH_CONTEXT.md Ablation 설계 참조: core (a)~(d), directional (e)~(f), warmup (d-nowarmup)
 7. 패키지 필요하면 Dockerfile에도 추가
 
-/results/phase3a/REPORT.md 작성 (구현 검증 결과):
+results/phase3a/REPORT.md 작성 (구현 검증 결과):
 - 양방향 gradient check 결과 값 (∂L_mutual/∂f_i, ∂L_mutual/∂R_i)
 - mutual_mode별 gradient 흐름 확인 (full: 양방향, sem2geo: R_i만, geo2sem: f_i만)
 - 수정/추가한 파일 목록
@@ -464,7 +480,7 @@ configs/에 ablation .conf 7개 생성 (pyhocon, base config에 merge 가능하�
 TensorBoard에서 조건 동시 비교 설정도 알려줘.
 각 조건의 렌더링 결과 이미지 저장 (Depth/Normal/Semantic + GT RGB 참고용).
 3D 클래스 시각화도 조건 비교 (PLY 또는 웹 뷰어).
-/results/phase3b/REPORT.md 작성 (ablation 표 + 비교 이미지 + 해석).
+results/phase3b/REPORT.md 작성 (ablation 표 + 비교 이미지 + 해석).
 CLAUDE.md 진행 상태 업데이트.
 ```
 
@@ -510,7 +526,7 @@ PlanarSplatting에 L_photo(RGB photometric loss)를 추가하는 실험이야.
 - 3-C-2: --enable_photo --lambda_photo 1.0 --lambda_geo 0.1 --mutual_mode full
 
 각각 evaluate.py 실행. Phase 3-B 결과와 비교.
-/results/phase3c/REPORT.md 작성 (L_photo 유무 비교 표 + 이미지).
+results/phase3c/REPORT.md 작성 (L_photo 유무 비교 표 + 이미지).
 CLAUDE.md 진행 상태 업데이트.
 ```
 
@@ -546,7 +562,7 @@ scripts/export_citygml.py를 만들어줘.
 
 val3dity로 검증. 패키지 필요하면 Dockerfile에도 추가.
 CityGML 3D 시각화 캡처 (QGIS, 웹 뷰어, 또는 OBJ 렌더링).
-/results/phase4/REPORT.md 작성.
+results/phase4/REPORT.md 작성.
 CLAUDE.md 진행 상태 업데이트.
 ```
 
@@ -555,7 +571,7 @@ CLAUDE.md 진행 상태 업데이트.
 ## 결과 기록
 
 ### REPORT.md (Phase별 별도 파일)
-각 Phase 완료 시 `/results/phaseX/REPORT.md`를 생성한다. 하나의 파일에 누적하지 않고, Phase마다 독립된 파일을 만든다.
+각 Phase 완료 시 `results/phaseX/REPORT.md`를 생성한다. 하나의 파일에 누적하지 않고, Phase마다 독립된 파일을 만든다.
 
 ```markdown
 # Phase X: [Phase 이름] 결과 보고
@@ -576,7 +592,7 @@ YYYY-MM-DD
 
 ## 정성적 결과
 데이터셋 전체에서 다양한 장면을 선별하여 제시 (초반/중반/후반 균등 분포, 8~9장 이상).
-이미지는 `/results/phaseX/images/`에 저장하고 상대 경로로 참조.
+이미지는 `results/phaseX/images/`에 저장하고 상대 경로로 참조.
 각 이미지에 구체적 캡션을 포함: 어떤 구조물이 어떤 결과로 나왔는지 설명.
 
 ### 렌더링 결과
@@ -601,12 +617,12 @@ YYYY-MM-DD
 (다음에 할 일)
 ```
 
-※ 이미지는 `/results/phaseX/images/` 에 저장하고 상대 경로로 참조.
+※ 이미지는 `results/phaseX/images/` 에 저장하고 상대 경로로 참조.
 ※ 정성적 결과가 중요한 이유: 숫자만으로는 벽면/지붕 분리가 제대로 되는지 판단 불가. 시각적 확인이 필수.
 
 ### SUMMARY.md (전체 진행 현황)
-모든 Phase의 핵심 수치를 한눈에 보려면 `/results/SUMMARY.md`를 요청할 수 있다:
+모든 Phase의 핵심 수치를 한눈에 보려면 `results/SUMMARY.md`를 요청할 수 있다:
 ```
 지금까지 완료된 모든 Phase의 REPORT.md를 읽고,
-/results/SUMMARY.md에 Phase별 핵심 지표를 요약하는 표를 만들어줘.
+results/SUMMARY.md에 Phase별 핵심 지표를 요약하는 표를 만들어줘.
 ```

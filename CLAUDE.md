@@ -169,5 +169,5 @@ python scripts/evaluate.py --checkpoint path/to/latest.pth --compare_with prev_r
 - L_mutual에서 detach 금지 (양방향 gradient 필수). ablation 시에만 선택적 detach
 - semantic 렌더링은 PyTorch 레벨 우선 (CUDA 수정 후순위)
 - 기존 PlanarSplatting 기능 보존: --플래그로 새 기능 on/off
-- 각 Phase 완료 시 /results/phaseX/REPORT.md 생성 (정량+정성 결과 포함, 템플릿은 EXPERIMENT_PLAN.md 하단 참조)
+- 각 Phase 완료 시 results/phaseX/REPORT.md 생성 (정량+정성 결과 포함, 템플릿은 EXPERIMENT_PLAN.md 하단 참조)
 - Phase 진행 시 docs/EXPERIMENT_PLAN.md의 해당 Phase를 반드시 읽고 따를 것
