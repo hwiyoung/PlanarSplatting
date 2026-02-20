@@ -1,0 +1,11 @@
+{
+  "L_sem_value": 1.3862934112548828,
+  "grad_f_norm": 0.5,
+  "grad_R_from_sem": 0.0,
+  "L_geo_value": 0.0,
+  "prune_ok": true,
+  "split_ok": true,
+  "backward_compat_ok": true,
+  "nosem_requires_grad": false,
+  "nosem_ok": true
+}

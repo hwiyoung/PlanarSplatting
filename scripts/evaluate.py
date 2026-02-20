@@ -76,6 +76,11 @@ def load_model_and_data(checkpoint_path):
     # Load checkpoint
     ckpt = torch.load(checkpoint_path, map_location='cpu')
     plane_num = ckpt['model_state_dict']['planarSplat._plane_center'].shape[0]
+    # Backward compatibility: add missing semantic features (Phase 2-B)
+    sem_key = 'planarSplat._plane_semantic_features'
+    if sem_key not in ckpt['model_state_dict']:
+        num_classes = net.planarSplat.semantic_num_classes
+        ckpt['model_state_dict'][sem_key] = torch.zeros(plane_num, num_classes)
     net.planarSplat.initialize_as_zero(plane_num)
     net.build_optimizer_and_LRscheduler()
     net.reset_plane_vis()
@@ -93,6 +98,26 @@ def compute_psnr(rendered_rgb, gt_rgb):
     if mse < 1e-10:
         return 100.0
     return -10.0 * torch.log10(mse).item()
+
+
+def compute_miou(pred_classes, gt_classes, num_classes=4, ignore_index=0):
+    """Compute mean IoU over non-ignored classes."""
+    ious = {}
+    class_names = {1: 'roof', 2: 'wall', 3: 'ground'}
+    for c in range(num_classes):
+        if c == ignore_index:
+            continue
+        pred_c = (pred_classes == c)
+        gt_c = (gt_classes == c)
+        intersection = (pred_c & gt_c).sum().item()
+        union = (pred_c | gt_c).sum().item()
+        if union > 0:
+            ious[class_names.get(c, f'class_{c}')] = intersection / union
+        else:
+            ious[class_names.get(c, f'class_{c}')] = float('nan')
+    valid_ious = [v for v in ious.values() if v == v]  # exclude NaN
+    miou = float(np.mean(valid_ious)) if valid_ious else 0.0
+    return miou, ious
 
 
 def evaluate_checkpoint(checkpoint_path, metrics):
@@ -118,6 +143,8 @@ def evaluate_checkpoint(checkpoint_path, metrics):
     psnr_list = []
     depth_mae_list = []
     normal_cos_list = []
+    miou_list = []
+    per_class_ious_accum = {}
 
     with torch.no_grad():
         for idx in range(dataset.n_images):
@@ -160,6 +187,20 @@ def evaluate_checkpoint(checkpoint_path, metrics):
                     cos_sim = (normal_pred * normal_gt).sum(dim=-1)[valid_normal].mean().item()
                     normal_cos_list.append(cos_sim)
 
+            # Semantic mIoU
+            if 'semantic_miou' in metrics and view_info.seg_map is not None:
+                # rendered_rgb is (4, H, W) = semantic features when enable_semantic
+                sem_pred = rendered_rgb.argmax(dim=0).reshape(-1)  # (H*W,)
+                gt_seg = view_info.seg_map  # (H*W,)
+                # Only evaluate where GT has non-bg labels AND valid render
+                eval_mask = valid_mask & (gt_seg > 0)
+                if eval_mask.sum() > 100:
+                    miou_val, class_ious = compute_miou(sem_pred[eval_mask], gt_seg[eval_mask])
+                    miou_list.append(miou_val)
+                    for k, v in class_ious.items():
+                        if v == v:  # not NaN
+                            per_class_ious_accum.setdefault(k, []).append(v)
+
     if psnr_list:
         results['psnr_mean'] = float(np.mean(psnr_list))
         results['psnr_std'] = float(np.std(psnr_list))
@@ -175,6 +216,13 @@ def evaluate_checkpoint(checkpoint_path, metrics):
         results['normal_cos_std'] = float(np.std(normal_cos_list))
         results['normal_cos_per_view'] = normal_cos_list
 
+    if miou_list:
+        results['semantic_miou_mean'] = float(np.mean(miou_list))
+        results['semantic_miou_std'] = float(np.std(miou_list))
+        results['semantic_miou_per_view'] = miou_list
+        for k, v_list in per_class_ious_accum.items():
+            results[f'iou_{k}_mean'] = float(np.mean(v_list))
+
     return results
 
 
@@ -187,7 +235,7 @@ def compare_results(current, compare_path):
     print(f"{'Metric':<20} {'Previous':>12} {'Current':>12} {'Delta':>12}")
     print("-" * 58)
 
-    for key in ['psnr_mean', 'depth_mae_mean', 'normal_cos_mean', 'plane_count']:
+    for key in ['psnr_mean', 'depth_mae_mean', 'normal_cos_mean', 'semantic_miou_mean', 'plane_count']:
         if key in current and key in prev:
             p = prev[key]
             c = current[key]
@@ -204,7 +252,7 @@ def main():
     parser = argparse.ArgumentParser(description='Evaluate PlanarSplatting checkpoint')
     parser.add_argument('--checkpoint', required=True, help='Path to checkpoint .pth')
     parser.add_argument('--metrics', nargs='+', default=['psnr', 'depth_mae', 'normal_cos'],
-                        choices=['psnr', 'depth_mae', 'normal_cos'],
+                        choices=['psnr', 'depth_mae', 'normal_cos', 'semantic_miou'],
                         help='Metrics to compute')
     parser.add_argument('--output', default='', help='Output JSON path')
     parser.add_argument('--compare_with', default='', help='Previous results JSON to compare')
@@ -224,6 +272,12 @@ def main():
         print(f"Depth MAE:  {results['depth_mae_mean']:.4f} +/- {results['depth_mae_std']:.4f}")
     if 'normal_cos_mean' in results:
         print(f"Normal cos: {results['normal_cos_mean']:.4f} +/- {results['normal_cos_std']:.4f}")
+    if 'semantic_miou_mean' in results:
+        print(f"Sem. mIoU:  {results['semantic_miou_mean']:.4f} +/- {results['semantic_miou_std']:.4f}")
+        for cls in ['roof', 'wall', 'ground']:
+            key = f'iou_{cls}_mean'
+            if key in results:
+                print(f"  IoU {cls}:  {results[key]:.4f}")
 
     # Save JSON
     if args.output:

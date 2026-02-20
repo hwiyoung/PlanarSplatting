@@ -134,6 +134,12 @@ def resume_model(trainer, ckpt_name='latest'):
         saved_model_state = torch.load(os.path.join(old_checkpnts_dir, trainer.model_subdir, ckpt_name + ".pth"))
         logger.info(f'loading model from {os.path.join(old_checkpnts_dir, trainer.model_subdir, ckpt_name + ".pth")}')
         plane_num = saved_model_state["model_state_dict"]['planarSplat._plane_center'].shape[0]
+        # Backward compatibility: add missing semantic features key (Phase 2-B)
+        sem_key = 'planarSplat._plane_semantic_features'
+        if sem_key not in saved_model_state["model_state_dict"]:
+            num_classes = trainer.net.planarSplat.semantic_num_classes
+            saved_model_state["model_state_dict"][sem_key] = torch.zeros(plane_num, num_classes)
+            logger.info(f'Added missing {sem_key} ({plane_num}, {num_classes}) for backward compatibility')
         trainer.net.planarSplat.initialize_as_zero(plane_num)
         trainer.net.build_optimizer_and_LRscheduler()
         trainer.net.reset_plane_vis()

@@ -48,14 +48,14 @@ PlanarSplatting/
 │   │   ├── net_wrapper.py               # PlanarRecWrapper (Adam optimizer, split/prune/density)
 │   │   └── runner.py
 │   ├── net/
-│   │   └── net_planarSplatting.py       # PlanarSplat_Network (6 learnable params, forward→rasterizer)
+│   │   └── net_planarSplatting.py       # PlanarSplat_Network (7 learnable params: 6 geo + f_i, forward→rasterizer)
 │   ├── data_loader/
 │   │   ├── scene_dataset.py             # 일반 학습 데이터셋
 │   │   └── scene_dataset_demo.py        # 데모 데이터셋 (ViewInfo, SceneDatasetDemo)
 │   ├── monocues/
 │   │   └── metric3d.py                  # Metric3D mono depth/normal 추론
 │   └── utils/
-│       ├── loss_util.py                 # metric_depth_loss (L1), normal_loss (L1+cos) — 2개 손실만
+│       ├── loss_util.py                 # 4개 손실: metric_depth_loss, normal_loss, semantic_loss (Phase 2-B), normal_consistency_loss (Phase 2-B)
 │       ├── trainer_util.py              # plot_plane_img, save/resume checkpoint
 │       ├── model_util.py                # quaternion ops, split mask logic
 │       ├── mesh_util.py                 # TSDF mesh (refuse_mesh), depth rendering
@@ -64,7 +64,7 @@ PlanarSplatting/
 │       └── graphics_utils.py            # projection matrix, focal2fov
 │
 ├── submodules/
-│   ├── diff-rect-rasterization/         # CUDA 사각형 rasterizer (forward.cu L381-418: alpha 계산)
+│   ├── diff-rect-rasterization/         # CUDA 사각형 rasterizer (forward.cu L381-418: alpha, backward.cu: color grad 추가)
 │   ├── quaternion-utils/                # CUDA quaternion 연산
 │   ├── Metric3D/                        # mono depth/normal 추정 (hubconf.py)
 │   └── vggt/                            # VGGT 포인트 클라우드 추정
@@ -85,11 +85,12 @@ PlanarSplatting/
 │   └── misc.py
 │
 ├── scripts/                             # 평가, 시각화, 데이터 변환 스크립트
-│   ├── visualize_primitives.py          # 체크포인트 → PLY export (CUDA 필요)
-│   ├── evaluate.py                      # 체크포인트 → Depth MAE, Normal cos, PSNR → JSON
+│   ├── visualize_primitives.py          # 체크포인트 → PLY export (--color_by normal/class)
+│   ├── evaluate.py                      # 체크포인트 → Depth MAE, Normal cos, Semantic mIoU → JSON
 │   ├── render_views.py                  # 체크포인트 → RGB/Depth/Normal 이미지 렌더링
 │   ├── colmap_to_ps.py                  # COLMAP 출력 → PlanarSplatting input_data.pth 변환
-│   └── generate_segmentation.py         # Grounded SAM 2 + MVS normal → seg_maps 생성
+│   ├── generate_segmentation.py         # Grounded SAM 2 + MVS normal → seg_maps 생성
+│   └── gradient_check_phase2b.py        # Phase 2-B gradient check (6개 자동 테스트)
 │
 ├── planarSplat_ExpRes/                  # 실험 결과 (볼륨 마운트)
 │   ├── demo/                            # 실험별 하위: exp_name/timestamp/
@@ -104,13 +105,14 @@ PlanarSplatting/
 ```
 
 ### 핵심 데이터 흐름
-1. **입력**: 이미지 → COLMAP SfM/MVS(depth, normal) → SceneDatasetDemo(ViewInfo 리스트)
-2. **학습**: PlanarSplatTrainRunner.train() → PlanarSplat_Network.forward() → CUDA rasterizer → allmap[7ch]
-3. **손실**: allmap → depth(ch0), normal(ch2-4) → metric_depth_loss + normal_loss → backward
-4. **밀도 제어**: net_wrapper.split_plane()/prune_small_plane() — 6 params 모두 동기 처리
-5. **후처리**: merger() → TSDF mesh → merge_plane → PLY 출력
+1. **입력**: 이미지 → COLMAP SfM/MVS(depth, normal) → SceneDatasetDemo(ViewInfo 리스트 + seg_maps)
+2. **학습**: PlanarSplatTrainRunner.train() → PlanarSplat_Network.forward() → CUDA rasterizer → rendered_features[4ch] + allmap[7ch]
+3. **손실 (기하)**: allmap → depth(ch0), normal(ch2-4) → metric_depth_loss + normal_loss → backward
+4. **손실 (의미론, Phase 2-B)**: rendered_features → semantic_loss(vs seg_map GT) + normal_consistency_loss(depth-derived vs rendered normal)
+5. **밀도 제어**: net_wrapper.split_plane()/prune_small_plane() — 7 params(6 geo + f_i) 모두 동기 처리
+6. **후처리**: merger() → TSDF mesh → merge_plane → PLY 출력
 
-### 프리미티브 파라미터 (6 learnable + 2 non-learnable)
+### 프리미티브 파라미터 (6+1 learnable + 2 non-learnable)
 | 변수 | 차원 | 의미 | Learnable |
 |------|------|------|-----------|
 | `_plane_center` | (N,3) | 중심 위치 | ✓ lr=0.001 |
@@ -119,7 +121,8 @@ PlanarSplatting/
 | `_plane_rot_q_normal_wxy` | (N,3) | 법선 회전 quat(w,x,y) | ✓ lr=0.001 |
 | `_plane_rot_q_xyAxis_w` | (N,1) | 면내 회전 quat w | ✓ lr=0.001 |
 | `_plane_rot_q_xyAxis_z` | (N,1) | 면내 회전 quat z | ✓ lr=0.001 |
-| `colors_precomp` | (N,3) | 색상 (random) | ✗ |
+| `_plane_semantic_features` | (N,4) | 의미론적 특징 (Phase 2-B) | ✓ lr=0.005 (enable_semantic 시) |
+| `colors_precomp` | (N,4) | semantic=f_i / else=random | ✗ (rasterizer 입력) |
 | `opacities` | (N,1) | 불투명도 (=1) | ✗ |
 
 ### allmap 채널 (rasterizer 출력)
@@ -136,27 +139,42 @@ PlanarSplatting/
 # PLY export (normal 색상)
 python scripts/visualize_primitives.py --checkpoint path/to/latest.pth --color_by normal
 
+# PLY export (semantic class 색상: roof=red, wall=blue, ground=gray)
+python scripts/visualize_primitives.py --checkpoint path/to/latest.pth --color_by class
+
 # 평가 (depth_mae, normal_cos가 의미 있음. PSNR은 random color 때문에 무의미)
 python scripts/evaluate.py --checkpoint path/to/latest.pth --metrics depth_mae normal_cos
+
+# Semantic mIoU 포함 평가 (enable_semantic 학습 후)
+python scripts/evaluate.py --checkpoint path/to/latest.pth --metrics depth_mae normal_cos semantic_miou
 
 # 이전 결과와 비교
 python scripts/evaluate.py --checkpoint path/to/latest.pth --compare_with prev_results.json
 ```
 
-### TensorBoard 이미지 채널
+### TensorBoard 채널
+**이미지 (tb_image_freq=500):**
 | 태그 | 내용 | 비고 |
 |------|------|------|
 | `compare/1_rgb` | GT\|Rendered RGB side-by-side | 색상이 random이므로 참고용 |
 | `compare/2_depth` | GT\|Rendered Depth (viridis) | 학습 추적에 유용 |
 | `compare/3_normal` | GT\|Rendered Normal ((n+1)/2) | 학습 추적에 유용 |
+| `compare/4_semantic` | GT\|Predicted semantic (enable_semantic 시) | Phase 2-B |
 | `gt/*`, `render/*` | 개별 채널 (확대용) | |
+
+**스칼라 (enable_semantic 시 추가):**
+| 태그 | 내용 | 주기 |
+|------|------|------|
+| `loss/semantic` | L_sem 값 | log_freq=50 |
+| `loss/geo_nc` | L_geo (normal consistency) 값 | log_freq=50 |
+| `semantic/class_*_count` | 클래스별 프리미티브 수 (bg/roof/wall/ground) | 100 iter |
 
 ## 현재 진행 상태
 - [x] Phase 0-Setup: 모니터링 환경 구축
 - [x] Phase 0: SfM/MVS 입력 확보 (COLMAP 180장 정합, 100장 학습, Depth MAE=0.067, Normal cos=0.911)
 - [x] Phase 1: MVS Depth+Normal Supervision 교체 (Depth MAE=0.053, Normal cos=0.840 vs MVS GT)
 - [x] Phase 2-A: 2D Segmentation 생성 (v10: Confident Labels Only, ambiguous→BG, Roof 5.9%/Wall 23.4%/Ground 19.5%, Go)
-- [ ] Phase 2-B: 의미론적 헤드 구현
+- [x] Phase 2-B: 의미론적 헤드 구현 (f_i parameter, L_sem, L_geo, CUDA backward fix, gradient isolation 검증 완료)
 - [ ] Phase 2-C: L_sem 독립 학습
 - [ ] Phase 3-A: L_mutual 구현
 - [ ] Phase 3-B: Ablation 7조건 학습
@@ -165,9 +183,10 @@ python scripts/evaluate.py --checkpoint path/to/latest.pth --compare_with prev_r
 
 ## 중요 규칙
 - **Docker:** 모든 명령은 컨테이너 내부에서. pip install 시 Dockerfile에도 반영.
-- f_i는 adaptive density control (split/clone/prune) 시 반드시 함께 처리
+- f_i는 adaptive density control (split/clone/prune) 시 반드시 함께 처리 (구현 완료, Phase 2-B)
 - L_mutual에서 detach 금지 (양방향 gradient 필수). ablation 시에만 선택적 detach
-- semantic 렌더링은 PyTorch 레벨 우선 (CUDA 수정 후순위)
-- 기존 PlanarSplatting 기능 보존: --플래그로 새 기능 on/off
+- **Semantic 렌더링**: Option A 확정 (raw f_i → colors_precomp → CUDA rasterizer alpha-blend → softmax → CE loss)
+- **CUDA rasterizer 수정 사항** (Phase 2-B): config.h NUM_CHANNELS=4, backward.cu에 color gradient atomicAdd 추가. Color→alpha gradient path는 의도적 미구현 (L_sem→geometry 격리).
+- 기존 PlanarSplatting 기능 보존: `--enable_semantic` 플래그로 새 기능 on/off (default=False)
 - 각 Phase 완료 시 results/phaseX/REPORT.md 생성 (정량+정성 결과 포함, 템플릿은 EXPERIMENT_PLAN.md 하단 참조)
 - Phase 진행 시 docs/EXPERIMENT_PLAN.md의 해당 Phase를 반드시 읽고 따를 것

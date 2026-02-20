@@ -121,6 +121,8 @@ TensorBoard에 ssh 터널링으로 접속 가능한지 확인.
 완료 후 CLAUDE.md의 진행 상태에서 Phase 0-Setup을 체크해줘.
 ```
 
+**완료 노트:** TensorBoard 로깅, visualize_primitives.py, evaluate.py, 코드 리뷰 완료. `results/phase0_setup/` 참조.
+
 ---
 
 ## Phase 0: SfM/MVS 입력 확보
@@ -168,6 +170,8 @@ results/phase0/REPORT.md를 EXPERIMENT_PLAN.md 하단의 REPORT 템플릿에 따
 CLAUDE.md 진행 상태 업데이트.
 ```
 
+**완료 노트:** COLMAP 180장 정합, 100장 학습. Depth MAE=0.067, Normal cos=0.911. `results/phase0/` 참조.
+
 ---
 
 ## Phase 1: MVS Depth Supervision 교체
@@ -201,6 +205,8 @@ docs/EXPERIMENT_PLAN.md의 Phase 1을 진행해줘. 컨테이너 내부에서 �
 results/phase1/REPORT.md 작성 (정량 지표 + 정성적 비교 이미지 포함).
 CLAUDE.md 진행 상태 업데이트.
 ```
+
+**완료 노트:** MVS depth + MVS native normal 적용. Depth MAE=0.053, Normal cos=0.840 (vs MVS GT). `results/phase1/` 참조.
 
 ---
 
@@ -274,6 +280,8 @@ results/phase2a/REPORT.md 작성:
 - 이슈 및 해결 (발생한 문제와 해결 방법)
 CLAUDE.md 진행 상태 업데이트.
 ```
+
+**완료 노트:** v10 confident-labels-only. Roof 5.9%, Wall 23.4%, Ground 19.5%, Coverage 48.8%. `results/phase2a/` 참조.
 
 ---
 
@@ -353,6 +361,13 @@ results/phase2b/REPORT.md 작성 (구현 검증 결과):
 - 이슈 및 해결
 CLAUDE.md 진행 상태 업데이트.
 ```
+
+**완료 노트 (2026-02-19):**
+- 10/10 구현 항목 PASS. 상세: `results/phase2b/REPORT.md`
+- **스펙 이탈 1건**: L321 "CUDA 커널 로직 수정 금지" 위반 — backward.cu에 color gradient atomicAdd 2줄 추가. 원본이 `dL_dcolors` 축적을 생략했으므로(random color → 불필요) 이 수정 없이는 `∂L_sem/∂f_i = 0`. Color→alpha gradient path는 의도적 미구현 (L_sem→geometry 격리 유지).
+- **Gradient 격리 검증**: L_sem→f_i only (6 geometry params=0), L_geo→geometry only (f_i=0)
+- **Smoke test**: 3 iter, L_sem 1.386→1.374, f_i 0→6.85, classes emerging
+- **Phase 3-A 전방 호환 확인**: f_i(N,4) + `get_plane_geometry()`→`plane_normal`(N,3) → L_mutual per-primitive 직접 계산 가능
 
 ---
 

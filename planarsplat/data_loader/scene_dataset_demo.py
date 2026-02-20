@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 from tqdm import tqdm
 import open3d as o3d
+import cv2
 
 from utils.model_util import get_K_Rt_from_P
 from utils.mesh_util import refuse_mesh
@@ -51,6 +52,9 @@ class ViewInfo(nn.Module):
         self.mono_normal_global = gt_info['mono_normal_global'].cuda()
         self.index = gt_info['index']
         self.image_path = gt_info['image_path']
+        # semantic segmentation map (Phase 2-B): (H*W,) long tensor, class 0=bg
+        seg = gt_info.get('seg_map', None)
+        self.seg_map = seg.cuda() if seg is not None else None
 
         # other info
         self.scale = 1.0
@@ -110,6 +114,8 @@ class SceneDatasetDemo:
         assert mono_normals.shape[2] == img_res[1]
         mono_normals = mono_normals.reshape(self.n_images, -1, 3)  # n, hw, 3
 
+        # load segmentation maps (Phase 2-B)
+        seg_maps = self._load_seg_maps(image_paths, img_res)
 
         mesh = refuse_mesh(
             [x.cpu().squeeze().reshape(img_res[0], img_res[1]).numpy() for x in mono_depths],
@@ -168,14 +174,59 @@ class SceneDatasetDemo:
                 "mono_depth": mono_depths[idx],
                 "mono_normal_global": normal_global,
                 "mono_normal_local": normal_local,
-                'index': idx
+                'index': idx,
+                'seg_map': seg_maps[idx] if seg_maps is not None else None,
             }
             self.view_info_list.append(ViewInfo(cam_info, gt_info))      
 
             
 
         logger.info('data loader finished')
-    
+
+    def _load_seg_maps(self, image_paths, img_res):
+        """Load segmentation maps matching image filenames from sibling seg_maps/ dir.
+
+        Returns list of (H*W,) long tensors, or None if seg_maps dir not found.
+        Uses cv2.INTER_NEAREST for resize (class indices must not be interpolated).
+        """
+        if not image_paths:
+            return None
+        # Derive seg_maps directory: images are at .../dense/images/, seg at .../seg_maps/
+        img_dir = os.path.dirname(image_paths[0])
+        # Try multiple possible relative locations
+        candidates = [
+            os.path.join(os.path.dirname(os.path.dirname(img_dir)), 'seg_maps'),  # .../0_25x/seg_maps
+            os.path.join(os.path.dirname(img_dir), 'seg_maps'),  # .../dense/seg_maps
+            os.path.join(img_dir, '..', '..', 'seg_maps'),
+        ]
+        seg_dir = None
+        for c in candidates:
+            c = os.path.normpath(c)
+            if os.path.isdir(c):
+                seg_dir = c
+                break
+        if seg_dir is None:
+            logger.info('No seg_maps directory found, semantic supervision disabled for this dataset')
+            return None
+
+        H, W = img_res
+        seg_maps = []
+        found = 0
+        for img_path in image_paths:
+            stem = os.path.splitext(os.path.basename(img_path))[0]
+            seg_path = os.path.join(seg_dir, stem + '.png')
+            if os.path.exists(seg_path):
+                seg = cv2.imread(seg_path, cv2.IMREAD_GRAYSCALE)
+                if seg.shape[0] != H or seg.shape[1] != W:
+                    seg = cv2.resize(seg, (W, H), interpolation=cv2.INTER_NEAREST)
+                seg_maps.append(torch.from_numpy(seg.astype(np.int64)).reshape(-1))
+                found += 1
+            else:
+                # No seg_map for this image — all background (will be ignored by L_sem)
+                seg_maps.append(torch.zeros(H * W, dtype=torch.long))
+        logger.info(f'Loaded {found}/{len(image_paths)} segmentation maps from {seg_dir}')
+        return seg_maps
+
     def load_cameras(self, cam_dict, n_images, debug_start_idx=-1):
         if debug_start_idx == -1:
             scale_mats = [cam_dict['scale_mat_%d' % idx].to(dtype=torch.float32) for idx in range(n_images)]

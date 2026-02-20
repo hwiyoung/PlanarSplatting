@@ -43,6 +43,10 @@ def load_checkpoint_params(checkpoint_path):
         'rot_q_xyAxis_w': state['planarSplat._plane_rot_q_xyAxis_w'],
         'rot_q_xyAxis_z': state['planarSplat._plane_rot_q_xyAxis_z'],
     }
+    # Semantic features (Phase 2-B)
+    sem_key = 'planarSplat._plane_semantic_features'
+    if sem_key in state:
+        params['semantic_features'] = state[sem_key]
     return params, ckpt.get('iter', -1)
 
 
@@ -146,11 +150,23 @@ def color_by_depth(centers):
     return torch.from_numpy(colors_np).float()
 
 
+def color_by_class(semantic_features):
+    """Map semantic class to color: bg=black, roof=red, wall=blue, ground=gray."""
+    class_colors = torch.tensor([
+        [0.0, 0.0, 0.0],       # 0: bg (black)
+        [1.0, 0.0, 0.0],       # 1: roof (red)
+        [0.0, 0.0, 1.0],       # 2: wall (blue)
+        [0.7, 0.7, 0.7],       # 3: ground (gray)
+    ])
+    class_pred = semantic_features.argmax(dim=-1)  # (N,)
+    return class_colors[class_pred.clamp(0, 3)]
+
+
 def main():
     parser = argparse.ArgumentParser(description='Export planar primitives to PLY')
     parser.add_argument('--checkpoint', required=True, help='Path to checkpoint .pth')
-    parser.add_argument('--color_by', default='normal', choices=['normal', 'rgb', 'depth'],
-                        help='Coloring method')
+    parser.add_argument('--color_by', default='normal', choices=['normal', 'rgb', 'depth', 'class'],
+                        help='Coloring method (class: roof=red, wall=blue, ground=gray)')
     parser.add_argument('--export_ply', default='', help='Output PLY path')
     args = parser.parse_args()
 
@@ -170,6 +186,11 @@ def main():
         colors = torch.rand(N, 3)
     elif args.color_by == 'depth':
         colors = color_by_depth(params['center'])
+    elif args.color_by == 'class':
+        if 'semantic_features' not in params:
+            print("Error: checkpoint has no semantic features. Train with --enable_semantic first.")
+            sys.exit(1)
+        colors = color_by_class(params['semantic_features'])
 
     mesh = build_rectangle_mesh(
         params['center'], normals,

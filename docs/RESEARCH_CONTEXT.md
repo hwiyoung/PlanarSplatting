@@ -38,13 +38,13 @@ PlanarSplatting은 L_photo 없이 기하학적 손실(L_depth, L_normal)만으�
 **L_mutual이 작동하는 지점:** `q_n(w,x,y)` 가 법선 n_i를 결정하므로, L_mutual의 ∂L/∂R_i gradient는 주로 이 3개 파라미터를 통해 흐른다.
 
 **Density control 시 동기 처리 필요:**
-`net_wrapper.py`의 `prune_core()`, `densification_postfix()`, `split_planes_via_radii_grad()` 에서 6개 파라미터 + optimizer state를 모두 동기 처리한다. **f_i 추가 시 이 함수들에 반드시 포함시켜야 한다.**
+`net_wrapper.py`의 `prune_core()`, `densification_postfix()`, `split_planes_via_radii_grad()` 에서 7개 파라미터(6 geo + f_i) + optimizer state를 모두 동기 처리한다. (**Phase 2-B에서 구현 완료.**)
 
-### 본 연구에서 추가하는 파라미터 (Θ_sem)
+### 본 연구에서 추가하는 파라미터 (Θ_sem) — Phase 2-B 구현 완료
 
-| 파라미터 | 차원 | 의미 | 관련 손실 |
-|----------|------|------|-----------|
-| **f_i** | **4** | **의미론적 특징 (bg/roof/wall/ground)** | **L_sem, L_mutual** |
+| 파라미터 | 변수명 | 차원 | 의미 | lr | 관련 손실 |
+|----------|--------|------|------|----|-----------|
+| **f_i** | `_plane_semantic_features` | **(N, 4)** | **의미론적 특징 (bg/roof/wall/ground)** | **0.005** | **L_sem, L_mutual** |
 
 ### 파라미터-손실 매핑 (기본 설계: L_photo 미포함)
 

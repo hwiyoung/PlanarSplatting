@@ -15,7 +15,7 @@ from utils.misc_util import setup_logging, get_train_param, save_config_files, p
 from utils.trainer_util import resume_model, calculate_plane_depth, plot_plane_img, save_checkpoints
 from utils.mesh_util import get_coarse_mesh
 from utils.merge_util import merge_plane
-from utils.loss_util import normal_loss, metric_depth_loss
+from utils.loss_util import normal_loss, metric_depth_loss, semantic_loss, normal_consistency_loss
 
 import rerun as rr
 try:
@@ -64,6 +64,10 @@ class PlanarSplatTrainRunner():
         loss_plane_conf = self.conf.get_config('plane_model.plane_loss')
         self.weight_plane_normal = loss_plane_conf.get_float('weight_mono_normal')
         self.weight_plane_depth = loss_plane_conf.get_float('weight_mono_depth')
+        # Semantic losses (Phase 2-B)
+        self.enable_semantic = self.conf.get_bool('plane_model.enable_semantic', default=False)
+        self.lambda_sem = loss_plane_conf.get_float('lambda_sem', default=0.1)
+        self.lambda_geo = loss_plane_conf.get_float('lambda_geo', default=0.0)
 
         # ======================================= training settings
         self.max_total_iters = self.conf.get_int('train.max_total_iters')
@@ -216,6 +220,27 @@ class PlanarSplatTrainRunner():
             self.tb_writer.add_image('compare/3_normal', normal_compare, iter, dataformats='HWC')
             self.tb_writer.add_image('gt/normal', gt_normal_color, iter, dataformats='HWC')
             self.tb_writer.add_image('render/normal', normal_color, iter, dataformats='HWC')
+
+            # --- Semantic (Phase 2-B) ---
+            if self.enable_semantic:
+                # Rendered semantic: argmax of alpha-blended features
+                sem_pred = rendered_rgb.argmax(dim=0).cpu().numpy()  # (H, W)
+                # Color map: bg=black, roof=red, wall=blue, ground=gray
+                sem_color_map = np.array([
+                    [0, 0, 0],       # 0: bg
+                    [255, 0, 0],     # 1: roof
+                    [0, 0, 255],     # 2: wall
+                    [180, 180, 180], # 3: ground
+                ], dtype=np.uint8)
+                sem_color = sem_color_map[sem_pred.clip(0, 3)]
+                self.tb_writer.add_image('render/semantic', sem_color, iter, dataformats='HWC')
+                # GT semantic
+                if view_info.seg_map is not None:
+                    gt_seg = view_info.seg_map.reshape(self.H, self.W).cpu().numpy()
+                    gt_seg_color = sem_color_map[gt_seg.clip(0, 3)]
+                    sem_compare = np.concatenate([gt_seg_color, sem_color], axis=1)
+                    self.tb_writer.add_image('compare/4_semantic', sem_compare, iter, dataformats='HWC')
+                    self.tb_writer.add_image('gt/semantic', gt_seg_color, iter, dataformats='HWC')
         finally:
             self.net.train()
 
@@ -425,7 +450,7 @@ class PlanarSplatTrainRunner():
             # ======================================= zero grad
             self.net.optimizer.zero_grad()
             #  ======================================= plane forward
-            allmap = self.net.planarSplat(view_info,iter)
+            rendered_features, allmap = self.net.planarSplat(view_info, iter, return_rgb=True)
             # ------------ get rendered maps
             depth = allmap[0:1].squeeze().view(-1)
             normal_local_ = allmap[2:5]
@@ -446,6 +471,26 @@ class PlanarSplatTrainRunner():
             loss_plane = (loss_plane_depth * 1.0) * self.weight_plane_depth \
                         + (loss_plane_normal_l1 + loss_plane_normal_cos) * self.weight_plane_normal
             loss_final += loss_plane * decay
+
+            # ------------ semantic losses (Phase 2-B)
+            loss_sem_value = 0.
+            loss_geo_value = 0.
+            if self.enable_semantic:
+                # L_sem: CrossEntropyLoss on rendered semantic features vs seg_map GT
+                if view_info.seg_map is not None and self.lambda_sem > 0:
+                    loss_sem = semantic_loss(rendered_features, view_info.seg_map, mask=valid_ray_mask)
+                    loss_final += self.lambda_sem * loss_sem * decay
+                    loss_sem_value = loss_sem.detach().item()
+
+                # L_geo: normal consistency (rendered normal vs depth-derived normal)
+                if self.lambda_geo > 0:
+                    depth_2d = allmap[0:1].squeeze()  # (H, W)
+                    normal_local_hw3 = normal_local_.permute(1, 2, 0)  # (H, W, 3) in camera frame
+                    intrinsic = view_info.intrinsic
+                    vis_mask_2d = (allmap[1:2].squeeze() > 0.00001)
+                    loss_geo = normal_consistency_loss(depth_2d, normal_local_hw3, intrinsic, mask=vis_mask_2d)
+                    loss_final += self.lambda_geo * loss_geo * decay
+                    loss_geo_value = loss_geo.detach().item()
 
             # ======================================= backward & update plane denom & update learning rate
             loss_final.backward()
@@ -475,6 +520,9 @@ class PlanarSplatTrainRunner():
                         "L_total": f"{loss_final_value:.4f}",
                         "Trend": trend_state_name,
                     }
+                    if self.enable_semantic:
+                        loss_dict["L_sem"] = f"{loss_sem_value:.4f}"
+                        loss_dict["L_geo"] = f"{loss_geo_value:.4f}"
                     progress_bar.set_postfix(loss_dict)
                     status_line = (
                         "iter={} planes={} depth_loss={:.6f} normal_l1={:.6f} normal_cos={:.6f} "
@@ -504,6 +552,18 @@ class PlanarSplatTrainRunner():
                         trend_delta=trend_delta,
                         trend_state=trend_state_code,
                     )
+                    # Semantic TensorBoard logging (Phase 2-B)
+                    if self.enable_semantic and self.tb_writer is not None:
+                        self.tb_writer.add_scalar('loss/semantic', loss_sem_value, iter)
+                        self.tb_writer.add_scalar('loss/geo_nc', loss_geo_value, iter)
+                        # Log class distribution every 100 iters
+                        if iter % 100 == 0:
+                            with torch.no_grad():
+                                sem_feat = self.net.planarSplat._plane_semantic_features
+                                class_pred = sem_feat.argmax(dim=-1)
+                                for c_idx, c_name in enumerate(['bg', 'roof', 'wall', 'ground']):
+                                    count = (class_pred == c_idx).sum().item()
+                                    self.tb_writer.add_scalar(f'semantic/class_{c_name}_count', count, iter)
                     self._log_tb_text(iter=iter, text=status_line)
                 if iter % 10 == 0:
                     progress_bar.update(10)
