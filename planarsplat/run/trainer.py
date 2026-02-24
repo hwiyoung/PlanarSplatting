@@ -193,7 +193,10 @@ class PlanarSplatTrainRunner():
 
             # --- RGB (NOTE: colors are random each forward pass, so RGB comparison is
             # NOT meaningful for tracking quality. Use depth/normal instead.) ---
-            rgb_np = (rendered_rgb.permute(1, 2, 0).clamp(0, 1) * 255).cpu().numpy().astype(np.uint8)
+            rgb_hw_c = rendered_rgb.permute(1, 2, 0).clamp(0, 1)
+            if rgb_hw_c.shape[2] > 3:
+                rgb_hw_c = rgb_hw_c[:, :, :3]
+            rgb_np = (rgb_hw_c * 255).cpu().numpy().astype(np.uint8)
             gt_rgb_np = (view_info.rgb.reshape(self.H, self.W, 3) * 255).cpu().numpy().astype(np.uint8)
             rgb_compare = np.concatenate([gt_rgb_np, rgb_np], axis=1)
             self.tb_writer.add_image('compare/1_rgb', rgb_compare, iter, dataformats='HWC')

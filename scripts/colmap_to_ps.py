@@ -63,8 +63,13 @@ from utils_demo.read_write_model import read_model, qvec2rotmat
 def read_colmap_array(path):
     """Read COLMAP MVS binary file (depth or normal map).
 
-    Format: text header 'width&height&channels&' followed by row-major float32 data.
+    Format: text header 'width&height&channels&' followed by float32 data.
     No null terminator between header and data.
+
+    COLMAP's Mat class stores data in PLANAR layout:
+        data[slice * W * H + row * W + col]
+    where slice=channel index. For c=1 (depth), this is equivalent to row-major.
+    For c=3 (normals), all nx values come first, then ny, then nz.
     """
     with open(path, 'rb') as f:
         header = b''
@@ -79,7 +84,8 @@ def read_colmap_array(path):
         data = np.frombuffer(f.read(), dtype=np.float32)[:w * h * c]
         if c == 1:
             return data.reshape(h, w)
-        return data.reshape(h, w, c)
+        # Planar layout: (c, h, w) → transpose to (h, w, c)
+        return data.reshape(c, h, w).transpose(1, 2, 0)
 
 
 def depth_to_normal_cam(depth, intrinsic):

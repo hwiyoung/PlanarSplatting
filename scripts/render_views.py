@@ -23,33 +23,53 @@ from pathlib import Path
 from loguru import logger
 
 
-def find_experiment_dir(checkpoint_path):
-    p = Path(checkpoint_path).resolve()
-    for parent in [p.parent, p.parent.parent, p.parent.parent.parent,
-                   p.parent.parent.parent.parent]:
-        if (parent / 'input_data.pth').exists():
-            return parent
+def _walk_up(start_path, target_name, max_levels=6):
+    current = Path(start_path).resolve().parent
+    for _ in range(max_levels):
+        if (current / target_name).exists():
+            return current
+        current = current.parent
+    return None
+
+
+def _find_run_dir(checkpoint_path):
+    current = Path(checkpoint_path).resolve().parent
+    for _ in range(6):
+        if list(current.glob('run_conf_*.conf')):
+            return current
+        current = current.parent
     return None
 
 
 def render_and_save(checkpoint_path, output_dir, num_views=3, view_indices=None):
     os.makedirs(output_dir, exist_ok=True)
 
-    exp_dir = find_experiment_dir(checkpoint_path)
-    if exp_dir is None:
-        raise FileNotFoundError(f"Cannot find input_data.pth for {checkpoint_path}")
+    run_dir = _find_run_dir(checkpoint_path)
+    data_dir = _walk_up(checkpoint_path, 'input_data.pth')
 
-    # Load config
-    conf_files = list(exp_dir.glob('run_conf_*.conf'))
-    if not conf_files:
-        raise FileNotFoundError(f"No run_conf_*.conf in {exp_dir}")
-    conf_path = max(conf_files, key=lambda f: f.stat().st_mtime)
+    # Find config
+    conf_path = None
+    for search_dir in [run_dir, data_dir]:
+        if search_dir is not None:
+            conf_files = list(search_dir.glob('run_conf_*.conf'))
+            if conf_files:
+                conf_path = max(conf_files, key=lambda f: f.stat().st_mtime)
+                break
+    if conf_path is None:
+        raise FileNotFoundError(f"No run_conf_*.conf found for {checkpoint_path}")
 
     from pyhocon import ConfigFactory
     conf = ConfigFactory.parse_file(str(conf_path))
 
-    # Load data
-    data = torch.load(str(exp_dir / 'input_data.pth'), map_location='cpu', weights_only=False)
+    # Find data
+    data_path = None
+    for search_dir in [data_dir, run_dir]:
+        if search_dir is not None and (search_dir / 'input_data.pth').exists():
+            data_path = search_dir / 'input_data.pth'
+            break
+    if data_path is None:
+        raise FileNotFoundError(f"No input_data.pth found for {checkpoint_path}")
+    data = torch.load(str(data_path), map_location='cpu', weights_only=False)
     logger.info(f"Loaded data: {len(data['color'])} views")
 
     from utils.misc_util import get_class

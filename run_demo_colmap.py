@@ -77,32 +77,31 @@ if __name__ == '__main__':
     parser.add_argument('--use_precomputed_data', default=False, action="store_true", help='use processed data from input images')
     args = parser.parse_args()
 
-    data_path = args.data_path
-    if not os.path.exists(data_path):
-        raise ValueError(f'The input data path {data_path} does not exist.')
-    
-    image_path = os.path.join(data_path, 'images')
-    if not os.path.exists(image_path):
-        raise ValueError(f'The input image path {image_path} does not exist.')
-
-    colmap_cam_file_path = os.path.join(data_path, 'sparse/cameras.bin')
-    if not os.path.exists(colmap_cam_file_path):
-        raise ValueError(f'The input path {colmap_cam_file_path} does not exist.')
-    
-    colmap_image_file_path = os.path.join(data_path, 'sparse/images.bin')
-    if not os.path.exists(colmap_image_file_path):
-        raise ValueError(f'The input path {colmap_image_file_path} does not exist.')
-
-
     out_path = args.out_path
     os.makedirs(out_path, exist_ok=True)
-    precomputed_data_path = os.path.join(out_path, 'data.pth')
+    precomputed_data_path = os.path.join(out_path, 'input_data.pth')
     use_precomputed_data = args.use_precomputed_data
 
     if use_precomputed_data and os.path.exists(precomputed_data_path):
         data = torch.load(precomputed_data_path)
         print(f"loading precomputed data from {precomputed_data_path}")
     else:
+        data_path = args.data_path
+        if not os.path.exists(data_path):
+            raise ValueError(f'The input data path {data_path} does not exist.')
+
+        image_path = os.path.join(data_path, 'images')
+        if not os.path.exists(image_path):
+            raise ValueError(f'The input image path {image_path} does not exist.')
+
+        colmap_cam_file_path = os.path.join(data_path, 'sparse/cameras.bin')
+        if not os.path.exists(colmap_cam_file_path):
+            raise ValueError(f'The input path {colmap_cam_file_path} does not exist.')
+
+        colmap_image_file_path = os.path.join(data_path, 'sparse/images.bin')
+        if not os.path.exists(colmap_image_file_path):
+            raise ValueError(f'The input path {colmap_image_file_path} does not exist.')
+
         cameras = read_intrinsics_binary(colmap_cam_file_path)
         camera = next(iter(cameras.values()))
         fx, fy, cx, cy = camera.params[:4]

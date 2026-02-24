@@ -25,41 +25,63 @@ import numpy as np
 from loguru import logger
 
 
-def find_experiment_dir(checkpoint_path):
-    """Walk up from checkpoint to find the experiment directory (contains input_data.pth)."""
-    p = Path(checkpoint_path).resolve()
-    for parent in [p.parent, p.parent.parent, p.parent.parent.parent,
-                   p.parent.parent.parent.parent]:
-        if (parent / 'input_data.pth').exists():
-            return parent
+def _walk_up(start_path, target_name, max_levels=6):
+    """Walk up from start_path to find a parent containing target_name."""
+    current = Path(start_path).resolve().parent
+    for _ in range(max_levels):
+        if (current / target_name).exists():
+            return current
+        current = current.parent
     return None
 
 
-def find_config(exp_dir):
-    """Find the run config .conf file in the experiment directory."""
-    conf_files = list(exp_dir.glob('run_conf_*.conf'))
-    if conf_files:
-        return max(conf_files, key=lambda f: f.stat().st_mtime)
+def find_run_dir(checkpoint_path):
+    """Walk up from checkpoint to find the run directory (contains run_conf_*.conf)."""
+    current = Path(checkpoint_path).resolve().parent
+    for _ in range(6):
+        if list(current.glob('run_conf_*.conf')):
+            return current
+        current = current.parent
     return None
+
+
+def find_data_dir(start_path):
+    """Walk up from start_path to find directory containing input_data.pth."""
+    return _walk_up(start_path, 'input_data.pth')
 
 
 def load_model_and_data(checkpoint_path):
     """Load model from checkpoint + data from experiment directory."""
-    exp_dir = find_experiment_dir(checkpoint_path)
-    if exp_dir is None:
-        raise FileNotFoundError(
-            f"Cannot find experiment directory (with input_data.pth) for {checkpoint_path}")
+    # Find run dir (has run_conf_*.conf) and data dir (has input_data.pth) separately
+    run_dir = find_run_dir(checkpoint_path)
+    data_dir = find_data_dir(checkpoint_path)
 
-    # Load config
-    conf_path = find_config(exp_dir)
+    if run_dir is None and data_dir is None:
+        raise FileNotFoundError(
+            f"Cannot find run_conf_*.conf or input_data.pth for {checkpoint_path}")
+
+    # Config: prefer run_dir, fall back to data_dir
+    conf_path = None
+    for search_dir in [run_dir, data_dir]:
+        if search_dir is not None:
+            conf_files = list(search_dir.glob('run_conf_*.conf'))
+            if conf_files:
+                conf_path = max(conf_files, key=lambda f: f.stat().st_mtime)
+                break
     if conf_path is None:
-        raise FileNotFoundError(f"No run_conf_*.conf found in {exp_dir}")
+        raise FileNotFoundError(f"No run_conf_*.conf found (searched {run_dir}, {data_dir})")
 
     from pyhocon import ConfigFactory
     conf = ConfigFactory.parse_file(str(conf_path))
 
-    # Load input data
-    data_path = exp_dir / 'input_data.pth'
+    # Data: prefer data_dir, fall back to run_dir
+    data_path = None
+    for search_dir in [data_dir, run_dir]:
+        if search_dir is not None and (search_dir / 'input_data.pth').exists():
+            data_path = search_dir / 'input_data.pth'
+            break
+    if data_path is None:
+        raise FileNotFoundError(f"No input_data.pth found (searched {data_dir}, {run_dir})")
     data = torch.load(str(data_path), map_location='cpu')
     logger.info(f"Loaded input data: {data_path}")
 
@@ -283,7 +305,7 @@ def main():
     if args.output:
         out_path = args.output
     else:
-        exp_dir = find_experiment_dir(args.checkpoint)
+        exp_dir = find_data_dir(args.checkpoint)
         if exp_dir:
             out_path = str(exp_dir / 'eval_results.json')
         else:

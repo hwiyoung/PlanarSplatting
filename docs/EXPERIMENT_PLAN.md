@@ -399,12 +399,34 @@ Phase 2-A에서 생성한 seg_maps는 noisy GT이다 (v10 confident-labels-only:
 ```
 docs/EXPERIMENT_PLAN.md의 Phase 2-C를 진행해줘. 컨테이너 내부에서 작업이야.
 
---enable_semantic --lambda_sem 0.1 --lambda_geo 0.1로 5000 iter 학습.
-L_geo는 Phase 2-B에서 구현한 L_normal_consistency. 이후 모든 실험에 동일하게 포함.
-evaluate.py로 Phase 1과 비교 (depth_mae, normal_cos, semantic_miou).
-visualize (color_by class) → PLY export.
-렌더링 결과 이미지 저장 (Depth, Normal, Semantic 각 2~3장 + GT RGB 참고용).
-웹 뷰어 또는 PLY에서 3D 클래스별 시각화 캡처도.
+사전 준비:
+1. run_demo_colmap.py 수정 2건:
+   a. precomputed_data_path를 data.pth → input_data.pth로 변경
+      (colmap_to_ps.py, run_demo.py, evaluate.py 등 다른 스크립트는 모두 input_data.pth 사용.
+       run_demo_colmap.py만 data.pth를 쓰는 outlier)
+   b. -d 경로 검증(images/, sparse/cameras.bin 등)을 --use_precomputed_data가 아닌 경우에만 실행하도록 이동
+      (현재는 검증이 precomputed 분기보다 먼저 실행되어, precomputed 사용 시에도 COLMAP 파일 필요.
+       실제 sparse 파일은 sparse/0/cameras.bin에 있어서 검증 실패함)
+2. Phase 2-C 전용 conf 파일 생성: utils_demo/phase2c.conf
+   - demo.conf를 복사한 뒤 enable_semantic = True 추가
+   - lambda_sem=0.1, lambda_geo=0.1은 demo.conf에 이미 있으므로 그대로 유지
+   (Phase 3-B ablation에서 조건별 .conf가 필요하므로 conf 분리 필수)
+3. Phase 1 입력 데이터를 Phase 2-C 출력 경로에 복사:
+   cp planarSplat_ExpRes/seongsu_phase1_mvsnormal/input_data.pth planarSplat_ExpRes/seongsu_phase2c/input_data.pth
+
+학습 실행 (5000 iter):
+python run_demo_colmap.py \
+  -o planarSplat_ExpRes/seongsu_phase2c \
+  --conf_path utils_demo/phase2c.conf \
+  --use_precomputed_data
+- seg_maps는 image_paths 기준으로 자동 탐색됨 (user_inputs/testset/0_25x/seg_maps/, 180장)
+- L_geo는 Phase 2-B에서 구현한 L_normal_consistency. 이후 모든 실험에 동일하게 포함.
+
+평가:
+- evaluate.py로 Phase 1과 비교 (depth_mae, normal_cos, semantic_miou).
+  Phase 1 비교 기준: planarSplat_ExpRes/seongsu_phase1_mvsnormal/evaluation.json
+- visualize (color_by class) → PLY export.
+- 렌더링 결과 이미지 저장 (Depth, Normal, Semantic 각 2~3장 + GT RGB 참고용).
 
 mIoU가 낮으면(< 0.50) 다음 순서로 개선 시도:
 1. class-balanced weighting 적용: inverse frequency weight 또는 focal loss (Roof 비율이 5.9%로 매우 낮음)
