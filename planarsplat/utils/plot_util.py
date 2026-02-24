@@ -23,7 +23,7 @@ class random_color(object):
         ret_color[0] *= 0
         return ret_color
 
-def plot_rectangle_planes(plane_centers, plane_normals, plane_radii, rot_q, epoch=-1, suffix='', to_unscaled_coord=True, pose_cfg=None, out_path=None, plane_id=None, color_type=''):
+def plot_rectangle_planes(plane_centers, plane_normals, plane_radii, rot_q, epoch=-1, suffix='', to_unscaled_coord=True, pose_cfg=None, out_path=None, plane_id=None, color_type='', semantic_features=None):
     plane_normals_standard = torch.zeros_like(plane_normals)
     plane_normals_standard[..., -1] = 1
     if plane_radii.shape[-1] == 2:
@@ -78,6 +78,20 @@ def plot_rectangle_planes(plane_centers, plane_normals, plane_radii, rot_q, epoc
         colors = colors.astype(np.float64) / 255.
         triangle_mesh.vertex_colors = o3d.utility.Vector3dVector(colors)
         suffix = suffix + '_colorPrim'
+    elif color_type == 'class' and semantic_features is not None:
+        # bg=black, roof=red, wall=blue, ground=gray
+        class_colors = np.array([
+            [0.0, 0.0, 0.0],   # 0: bg
+            [1.0, 0.0, 0.0],   # 1: roof
+            [0.0, 0.0, 1.0],   # 2: wall
+            [0.7, 0.7, 0.7],   # 3: ground
+        ])
+        class_pred = semantic_features.detach().cpu().argmax(dim=-1).numpy()
+        class_pred = np.clip(class_pred, 0, 3)
+        per_plane_colors = class_colors[class_pred]  # (N, 3)
+        colors = np.repeat(per_plane_colors, 4, axis=0)  # (4N, 3)
+        triangle_mesh.vertex_colors = o3d.utility.Vector3dVector(colors)
+        suffix = suffix + '_colorClass'
     else:
         pass
 

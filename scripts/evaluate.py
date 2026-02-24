@@ -142,54 +142,6 @@ def compute_miou(pred_classes, gt_classes, num_classes=4, ignore_index=0):
     return miou, ious
 
 
-def export_class_ply(checkpoint_path, output_dir):
-    """Export PLY with semantic class colors (roof=red, wall=blue, ground=gray).
-
-    Re-uses visualize_primitives functions to avoid duplication.
-    """
-    scripts_dir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.insert(0, scripts_dir)
-    from visualize_primitives import (
-        load_checkpoint_params, get_normals, build_rectangle_mesh, color_by_class, color_by_normal
-    )
-
-    params, iter_num = load_checkpoint_params(checkpoint_path)
-    N = params['center'].shape[0]
-    if N == 0:
-        return
-
-    normals, rot_q = get_normals(params)
-
-    ply_paths = {}
-    # Always export normal-colored PLY
-    colors_normal = color_by_normal(normals)
-    mesh_normal = build_rectangle_mesh(
-        params['center'], normals, params['radii_p'], params['radii_n'], rot_q, colors_normal)
-    path_normal = os.path.join(output_dir, 'primitives_normal.ply')
-    import open3d as o3d
-    o3d.io.write_triangle_mesh(path_normal, mesh_normal)
-    ply_paths['normal'] = path_normal
-    logger.info(f"Exported normal PLY: {path_normal} ({N} primitives)")
-
-    # Export class-colored PLY if semantic features are available and learned
-    if 'semantic_features' in params:
-        fi = params['semantic_features']
-        if fi.abs().sum() > 0:  # f_i has been trained (not all zeros)
-            colors_class = color_by_class(fi)
-            mesh_class = build_rectangle_mesh(
-                params['center'], normals, params['radii_p'], params['radii_n'], rot_q, colors_class)
-            path_class = os.path.join(output_dir, 'primitives_class.ply')
-            o3d.io.write_triangle_mesh(path_class, mesh_class)
-            ply_paths['class'] = path_class
-            # Class distribution summary
-            class_names = ['bg', 'roof', 'wall', 'ground']
-            class_pred = fi.argmax(dim=-1)
-            dist = {class_names[c]: int((class_pred == c).sum()) for c in range(4)}
-            logger.info(f"Exported class PLY: {path_class} ({dist})")
-
-    return ply_paths
-
-
 def evaluate_checkpoint(checkpoint_path, metrics):
     if 'psnr' in metrics:
         logger.warning("PSNR: PlanarSplatting uses random colors (not learnable), "
@@ -363,12 +315,6 @@ def main():
     with open(out_path, 'w') as f:
         json.dump(results, f, indent=2)
     print(f"\nSaved results to: {out_path}")
-
-    # Export PLY files alongside eval results
-    ply_dir = os.path.dirname(os.path.abspath(out_path))
-    ply_paths = export_class_ply(args.checkpoint, ply_dir)
-    if ply_paths:
-        results['ply_files'] = ply_paths
 
     # Compare if requested
     if args.compare_with and os.path.exists(args.compare_with):

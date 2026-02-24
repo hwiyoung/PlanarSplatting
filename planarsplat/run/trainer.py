@@ -582,13 +582,15 @@ class PlanarSplatTrainRunner():
             if self.do_vis and iter % self.plot_freq == 0:
                 self.net.regularize_plane_shape()
                 self.net.eval()
-                mesh_n, mesh_p = self.net.planarSplat.draw_plane(epoch=iter)
+                mesh_n, mesh_p, mesh_c = self.net.planarSplat.draw_plane(epoch=iter)
                 vis_info = plot_plane_img(self)
                 self.net.train()
                 if vis_info is not None:
                     self._log_tb_image(iter=iter, vis_path=vis_info['vis_path'])
                 self._log_tb_mesh(iter=iter, mesh=mesh_p, tag='mesh/prim')
                 self._log_tb_mesh(iter=iter, mesh=mesh_n, tag='mesh/normal')
+                if mesh_c is not None:
+                    self._log_tb_mesh(iter=iter, mesh=mesh_c, tag='mesh/class')
             
             if iter > 0 and iter % self.check_vis_freq_ite == 0:
                 self.check_plane_visibility_cuda()

@@ -410,21 +410,34 @@ class PlanarSplat_Network(nn.Module):
     def draw_plane(self, suffix='', epoch=-1, to_unscaled_coord=True, plane_id=None, save_mesh=True):
         plane_normal, _, plane_center, plane_radii, plane_rot_q, _, _ = self.get_plane_geometry()
         mesh_n = plot_rectangle_planes(
-            plane_center, plane_normal, plane_radii, plane_rot_q, 
-            epoch=epoch, 
-            suffix='%s'%(suffix), 
-            to_unscaled_coord=to_unscaled_coord, 
-            pose_cfg=self.pose_cfg, 
+            plane_center, plane_normal, plane_radii, plane_rot_q,
+            epoch=epoch,
+            suffix='%s'%(suffix),
+            to_unscaled_coord=to_unscaled_coord,
+            pose_cfg=self.pose_cfg,
             out_path=self.plot_dir if save_mesh else None,
-            plane_id=plane_id, 
+            plane_id=plane_id,
             color_type='normal')
         mesh_p = plot_rectangle_planes(
-            plane_center, plane_normal, plane_radii, plane_rot_q, 
-            epoch=epoch, 
-            suffix='%s'%(suffix), 
-            to_unscaled_coord=to_unscaled_coord, 
-            pose_cfg=self.pose_cfg, 
+            plane_center, plane_normal, plane_radii, plane_rot_q,
+            epoch=epoch,
+            suffix='%s'%(suffix),
+            to_unscaled_coord=to_unscaled_coord,
+            pose_cfg=self.pose_cfg,
             out_path=self.plot_dir if save_mesh else None,
-            plane_id=plane_id, 
+            plane_id=plane_id,
             color_type='prim')
-        return mesh_n, mesh_p
+        # Class-colored PLY when semantic features are learned
+        mesh_c = None
+        if self.enable_semantic and self._plane_semantic_features.abs().sum() > 0:
+            mesh_c = plot_rectangle_planes(
+                plane_center, plane_normal, plane_radii, plane_rot_q,
+                epoch=epoch,
+                suffix='%s'%(suffix),
+                to_unscaled_coord=to_unscaled_coord,
+                pose_cfg=self.pose_cfg,
+                out_path=self.plot_dir if save_mesh else None,
+                plane_id=plane_id,
+                color_type='class',
+                semantic_features=self._plane_semantic_features)
+        return mesh_n, mesh_p, mesh_c
