@@ -276,5 +276,32 @@ PCGrad/CAGrad 같은 gradient surgery 대신 시간 축 분리로 충돌 회피.
 - 한 방향만 효과 → "항공 데이터에서는 Sem→Geo가 더 중요" 등 방향 분석
 - Trivial solution → entropy reg, class-balanced weighting, L_sem weight 증가
 
+## Building Instance Segmentation (미해결 과제)
+
+현재 파이프라인은 primitive 단위로 semantic class(roof/wall/ground)를 분류하지만, **어느 건물의** roof/wall인지는 구분하지 않는다. CityGML LOD2는 `<Building>` 단위로 구성되므로, building instance 분리 없이는 의미 있는 LOD2 출력이 불가능하다.
+
+### 현재 갭
+
+```
+이미지 → COLMAP → PlanarSplatting → semantic class per primitive → ???  → CityGML
+                                          ↑ 여기까지 있음          ↑ 이게 없음
+```
+
+### 검토된 접근법 (상세: `docs/BUILDING_INSTANCE_ANALYSIS.md`)
+
+| 접근 | 방법 | 장점 | 주요 빈틈 |
+|------|------|------|-----------|
+| A: SAM instance 보존 | Phase 2-A에서 per-building mask 저장 → Phase 4에서 투영 | 학습 파이프라인 수정 없음 | Multi-view instance 매칭 불안정 |
+| B: 기하학 기반 구성 | Roof XZ 투영 → connected component → wall 귀속 | 3D 직접, multi-view 문제 없음 | 같은 높이 인접 건물 분리 어려움 |
+| C: Learnable instance | f_i 확장 (semantic + instance embedding), 3-way mutual | End-to-end, 강한 연구 기여 | Instance GT 필요, 범위 확대 |
+
+### 연구 계획 관점
+
+- **현재 실험(Phase 3-A~3-C)은 그대로 진행**: L_mutual (2-way, geometry ↔ semantics)이 핵심 기여
+- **Instance는 별도 계획 수립 필요**: Phase 4 CityGML 변환 시점 또는 후속 연구로 결정
+- **결정 시점**: Phase 3-B ablation 결과 확인 후, 또는 Phase 4 진입 시
+
+---
+
 ## 데이터
 - 성수동 드론 이미지 180장 (oblique, 70m, 원본 8192x5460 → 2048x1365 리사이즈)

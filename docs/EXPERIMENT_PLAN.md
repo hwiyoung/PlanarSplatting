@@ -595,9 +595,14 @@ scripts/export_citygml.py를 만들어줘.
 처리:
 1. argmax(softmax(f_i)) → roof/wall/ground
 2. 같은 클래스 + cos(normal) > 0.95 + 중심 거리 < 2*r_i → 병합
-3. alpha shape → 경계 다각형
-4. CityGML XML (RoofSurface, WallSurface, GroundSurface)
-5. OBJ도 생성 (색칠)
+3. ★ Building grouping (미해결 — docs/BUILDING_INSTANCE_ANALYSIS.md 참조):
+   현재 파이프라인은 semantic class만 출력하고 building instance를 구분하지 않음.
+   CityGML LOD2는 <Building> 단위이므로, 이 단계에서 building grouping 필요.
+   접근 B(기하학 기반: roof XZ 투영 → connected component → wall 귀속)가 최소 변경.
+   접근 C(learnable instance embedding)는 Phase 3 수정이 필요하여 별도 계획.
+4. alpha shape → 경계 다각형 (per-building)
+5. CityGML XML (per-building: RoofSurface, WallSurface, GroundSurface)
+6. OBJ도 생성 (색칠)
 
 val3dity로 검증. 패키지 필요하면 Dockerfile에도 추가.
 CityGML 3D 시각화 캡처 (QGIS, 웹 뷰어, 또는 OBJ 렌더링).
