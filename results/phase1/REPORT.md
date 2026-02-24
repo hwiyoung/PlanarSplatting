@@ -103,5 +103,48 @@ Depth MAE가 finite-diff보다 높아진 이유: MVS native normal의 coverage�
 ## 생성/수정 파일
 - `scripts/colmap_to_ps.py` — MVS native normal 로드, `read_colmap_array()`, `--depth_source` 플래그 (수정)
 
+## 정성적 결과
+
+### Depth 렌더링 (GT vs Rendered)
+![Depth view 0](images/depth_view00.png)
+![Depth view 1](images/depth_view01.png)
+![Depth view 2](images/depth_view02.png)
+![Depth view 3](images/depth_view03.png)
+![Depth view 4](images/depth_view04.png)
+
+### Normal 렌더링 (GT vs Rendered)
+![Normal view 0](images/normal_view00.png)
+![Normal view 1](images/normal_view01.png)
+![Normal view 2](images/normal_view02.png)
+![Normal view 3](images/normal_view03.png)
+![Normal view 4](images/normal_view04.png)
+
+### RGB 참고
+![RGB view 0](images/rgb_view00.png)
+![RGB view 1](images/rgb_view01.png)
+
+## Addendum: Planar 읽기 버그 수정 및 Cross-Evaluation (2026-02-24)
+
+`read_colmap_array()`에서 COLMAP의 planar layout 데이터를 interleaved로 잘못 읽는 버그를 발견하여 수정하였다.
+이 버그로 인해 MVS native normal의 채널이 섞여 정확한 평가가 불가능했다.
+
+### 버그 수정 후 Cross-Evaluation (2×2)
+FD(finite-diff)와 MVS(native) 모델을 동일 5000 iter로 학습 후, 양쪽 GT 모두에 대해 교차 평가하였다.
+
+**Normal Cosine Similarity:**
+|  | FD GT | MVS GT |
+|---|---|---|
+| **FD model** | **0.7281** | 0.7761 |
+| **MVS model** | 0.7264 | **0.7811** |
+
+**Depth MAE:**
+|  | FD GT mask | MVS GT mask |
+|---|---|---|
+| **FD model** | 0.0246 | 0.0262 |
+| **MVS model** | **0.0229** | **0.0245** |
+
+**결론:** MVS native normal 채택 (depth MAE -6.9% 일관적 개선, normal cos 동등, coverage 91% vs 57%).
+상세 분석: `results/phase1_normal_comparison/REPORT.md` 참조.
+
 ## 다음 Phase
 - **Phase 2-B**: 의미론적 헤드 f_i(K=3) 구현 + semantic 렌더링 + L_sem + L_geo

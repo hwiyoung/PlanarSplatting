@@ -172,10 +172,10 @@ python scripts/evaluate.py --checkpoint path/to/latest.pth --compare_with prev_r
 ## 현재 진행 상태
 - [x] Phase 0-Setup: 모니터링 환경 구축
 - [x] Phase 0: SfM/MVS 입력 확보 (COLMAP 180장 정합, 100장 학습, Depth MAE=0.067, Normal cos=0.911)
-- [x] Phase 1: MVS Depth+Normal Supervision 교체 (재학습 필요 — planar 읽기 버그 수정)
-- [x] Phase 2-A: 2D Segmentation 생성 (v10: Confident Labels Only, normal 소스 재검토 필요)
+- [x] Phase 1: MVS Depth+Normal Supervision 교체 (Depth MAE=0.0229, Normal cos=0.7811 vs MVS GT — planar 버그 수정 + cross-eval 완료)
+- [x] Phase 2-A: 2D Segmentation 생성 (v10: Confident Labels Only, ambiguous→BG, Roof 5.9%/Wall 23.4%/Ground 19.5%, Go)
 - [x] Phase 2-B: 의미론적 헤드 구현 (f_i parameter, L_sem, L_geo, CUDA backward fix, gradient isolation 검증 완료)
-- [ ] Phase 2-C: L_sem 독립 학습 (재학습 필요 — Phase 1 재학습 후)
+- [x] Phase 2-C: L_sem 독립 학습 (Depth MAE=0.027, Normal cos=0.782, mIoU=0.810, Go)
 - [ ] Phase 3-A: L_mutual 구현
 - [ ] Phase 3-B: Ablation 7조건 학습
 - [ ] Phase 3-C: L_photo 추가 실험 (선택적, core ablation 이후)

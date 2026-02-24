@@ -9,7 +9,7 @@ Grounded SAM 2 (Grounding DINO + SAM 2.1)를 사용하여 드론 항공 이미�
 ### 최종 구현: v10 (Confident Labels Only + Ambiguous as Background)
 - COLMAP world frame을 사용하지 않고, **camera frame에서 직접** gravity 방향을 계산
 - DJI EXIF `GimbalPitchDegree` → `gravity_up_cam = [0, -cos(pitch), sin(pitch)]`
-- **Normal source: Smoothed MVS depth → 3D unprojection → finite-diff normals (camera frame)**
+- **Normal source: MVS native normals** (v11; 이전 v10은 depth-derived, `read_colmap_array()` 버그 수정으로 통일)
 - **Height-based classification**: depth → 3D unprojection → world Y coordinate → ground level(Y_ref) 기준 roof/ground 분류
 - **Ambiguous normals (0.3 < |dot| ≤ 0.85) → background**: 불확실한 분류를 강제하지 않고, L_mutual geometric prior에 위임
 
@@ -28,15 +28,16 @@ ambiguous normal(0.3 < |dot| ≤ 0.85)을 wall로 강제 분류하면, 모든 vi
 | v9 | Ambiguous → height tiebreaker (elevated→roof) | Depth discontinuity에서 facade artifact |
 | **v10** | **Ambiguous → background (no label)** | **Confident labels only** |
 
-### MVS PatchMatch Normal → Depth-Derived Normal 전환 이유
-MVS PatchMatch normals는 텍스처 없는 외벽에서 카메라 Z축 방향으로 **퇴화**한다.
-- 퇴화 법선의 |dot(normal, gravity)| ≈ |sin(pitch)| ≈ 0.755 (pitch=-49°)
-- 이 값이 roof(>0.85)도 wall(≤0.3)도 아닌 ambiguous zone에 위치
-- 결과: **facade 전체가 uniform한 |dot|≈0.755** → roof/wall 구분 불가
+### Normal Source 변경 이력
+**원래 (v10):** depth-derived normals 사용.
+- MVS PatchMatch normals가 텍스처 없는 외벽에서 카메라 Z축 방향으로 퇴화한다고 진단.
+- 이에 따라 smoothed MVS depth → 3D → finite-diff normals로 전환.
 
-반면 MVS depth는 multi-view 삼각측량으로 기하학적으로 검증됨:
-- Depth를 smoothing → 3D point cloud unproject → finite-diff cross product
-- **대규모 표면 방향을 정확히 캡쳐** (수직 wall → |dot|≈0, 수평 roof → |dot|≈1)
+**수정 (2026-02-24, v11):** MVS native normals로 통일.
+- `read_colmap_array()`에 planar layout 읽기 버그가 있었음 (interleaved로 잘못 해석).
+- 버그 수정 후 MVS native normals는 정상 작동 — 이전 "퇴화" 진단은 버그 artifact.
+- 학습 supervision (L_geo)과 segmentation (L_sem) 모두 MVS native로 통일하여 일관성 확보.
+- 상세: `results/phase1_normal_comparison/REPORT.md` 참조.
 
 ### Hybrid 전략 (v10)
 1. Grounded SAM으로 "building"과 "ground" 영역을 독립 검출 (per-pixel score 저장)
@@ -216,11 +217,29 @@ Wall이 -3.5% 감소 = ambiguous building 픽셀이 wall에서 background로 이
 2. **SAM 2 post_process_masks 오류**: 내부 텐서 크기 불일치 → F.interpolate로 수동 업스케일
 3. **COLMAP world_up 방향 오류**: `-mean_view_dir`이 수평 카메라에서 90° 틀림 → DJI gimbal pitch로 교체
 4. **c2w/w2c 혼동**: input_data.pth의 extrinsics는 c2w인데 w2c로 사용 → camera frame 직접 계산으로 우회
-5. **MVS PatchMatch normal 퇴화**: 텍스처 없는 facade에서 카메라 Z축 방향으로 퇴화 → depth-derived normals로 전환
+5. **MVS PatchMatch normal "퇴화" (수정)**: `read_colmap_array()` planar 읽기 버그 artifact. 버그 수정 후 MVS native normals로 통일 (v11).
 6. **GDINO ground 과검출**: ground가 99% 커버 → score-based overlap resolution
 7. **Multi-view consistency trap (v8)**: ambiguous→wall 강제 시 경사 지붕이 모든 view에서 wall → v10: ambiguous→background
 8. **Facade artifact (v9)**: height tiebreaker가 depth discontinuity 영역에서 elevated→roof 오분류 → v10: ambiguous→background
 9. **No-depth building 픽셀**: textureless facade/MVS failure → neighbor propagation (uniform_filter majority vote)
+
+## Addendum: MVS Native Normal로 통일 (v11, 2026-02-24)
+
+`read_colmap_array()` planar 읽기 버그 수정 후, `generate_segmentation.py`에 `--normal_source input_data` 옵션을 추가하여
+MVS native normals(input_data.pth에서 로드)로 seg_maps를 재생성하였다.
+
+### v10 (depth-derived) vs v11 (MVS native) 비교
+
+| 지표 | v10 (depth-derived) | v11 (MVS native) | 변화 |
+|------|---------------------|-------------------|------|
+| Coverage | 48.8% | 49.6% | +0.8% |
+| Roof | 5.9% | 6.2% | +0.3% |
+| Wall | 23.4% | 23.5% | +0.1% |
+| Ground | 19.5% | 19.9% | +0.4% |
+
+변화가 1% 미만으로 미미하다. 이는 MVS native normal과 depth-derived normal이
+dot product threshold 기반 분류에서 거의 동일한 결과를 산출함을 의미한다.
+v11을 정식 seg_maps로 채택.
 
 ## 다음 Phase
 Phase 2-B: 의미론적 헤드 구현 (f_i 추가, semantic 렌더링, L_sem 구현)

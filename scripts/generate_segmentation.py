@@ -21,11 +21,14 @@ Hybrid approach (recommended):
      - Fallback: pitch-dependent default if no neighbors available
   6. Pixels not in any SAM zone → background (ignored in training)
 
-Why depth-derived normals instead of MVS PatchMatch normals:
-  MVS PatchMatch normals degenerate to camera-facing direction on textureless
-  facades, making all building pixels look similar regardless of actual surface
-  orientation. MVS depth is geometrically verified and reliable — deriving normals
-  from smoothed depth correctly captures large-scale surface orientation.
+Normal source options (--normal_source):
+  - input_data (default): Use MVS native normals from input_data.pth. These are
+    COLMAP PatchMatch stereo direct outputs — first-order estimates, not derived
+    from depth. Preferred for consistency with training supervision.
+  - computed: Compute depth-derived normals from smoothed MVS depth. Legacy mode,
+    originally used because a planar reading bug in read_colmap_array() caused
+    MVS native normals to appear degenerate (channels mixed due to interleaved
+    vs planar layout confusion). Bug was fixed — MVS native normals are now valid.
 
 Gravity source: DJI EXIF gimbal pitch (--raw_image_dir for raw DJI JPGs).
 Fallback: text-only mode for images without DJI EXIF or depth.
@@ -58,6 +61,7 @@ import os
 import re
 from pathlib import Path
 
+import cv2
 import numpy as np
 import torch
 from PIL import Image, ImageDraw
@@ -228,9 +232,8 @@ def compute_depth_normals(
 ) -> tuple:
     """Compute surface normals from smoothed depth map.
 
-    MVS PatchMatch normals degenerate on textureless facades (camera-facing bias).
-    Depth is geometrically verified and reliable — deriving normals from smoothed
-    depth correctly captures large-scale surface orientation.
+    Derives normals by unprojecting smoothed depth to 3D and taking cross products
+    of finite differences. Smoothing captures large-scale surface orientation.
 
     Args:
         depth: (H, W) float32 depth map (0 = invalid).
@@ -589,6 +592,10 @@ def main():
                         help="Path to input_data.pth for hybrid mode (image_paths mapping)")
     parser.add_argument("--raw_image_dir", default=None,
                         help="Path to raw DJI images for EXIF gimbal pitch extraction")
+    parser.add_argument("--normal_source", choices=["computed", "input_data"],
+                        default="input_data",
+                        help="'input_data': MVS native from input_data.pth, "
+                             "'computed': depth-derived from smoothed depth (legacy)")
     parser.add_argument("--max_images", type=int, default=0)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--gdino_model", default="IDEA-Research/grounding-dino-tiny")
@@ -635,6 +642,8 @@ def main():
     intrinsics_lookup = {}
     c2w_lookup = {}
 
+    normal_lookup = {}
+
     if args.input_data and Path(args.input_data).exists():
         print(f"Loading depth + intrinsics + extrinsics from {args.input_data} (hybrid mode)")
         data = torch.load(args.input_data, map_location="cpu")
@@ -653,7 +662,19 @@ def main():
             depth_lookup[stem] = d
             intrinsics_lookup[stem] = k
             c2w_lookup[stem] = e
+
+            # Load MVS native normals from input_data.pth
+            if args.normal_source == "input_data" and "normal" in data:
+                n = data["normal"][idx]
+                if isinstance(n, torch.Tensor):
+                    n = n.numpy()
+                # n is (3, H, W) in [0, 1] → convert to [-1, 1]
+                n_neg1 = n.astype(np.float32) * 2.0 - 1.0
+                normal_lookup[stem] = n_neg1  # (3, H, W) [-1, 1]
+
         print(f"  Loaded depth for {len(depth_lookup)} images")
+        if normal_lookup:
+            print(f"  Loaded MVS native normals for {len(normal_lookup)} images (--normal_source input_data)")
 
         hybrid_mode = True
 
@@ -673,7 +694,15 @@ def main():
             pitch = pitch_lookup[stem]
 
             gravity_up = compute_gravity_up_cam(pitch)
-            normal_cam, valid_n, d_smooth = compute_depth_normals(d, k, sigma=3.0)
+
+            # Use MVS native normals from input_data if available
+            if stem in normal_lookup:
+                normal_cam = normal_lookup[stem]  # (3, H, W) [-1, 1]
+                valid_n = np.abs(normal_cam).sum(axis=0) > 0.1
+                # Still need smoothed depth for height computation
+                _, _, d_smooth = compute_depth_normals(d, k, sigma=3.0)
+            else:
+                normal_cam, valid_n, d_smooth = compute_depth_normals(d, k, sigma=3.0)
 
             dot_abs = np.abs(
                 normal_cam[0] * gravity_up[0]
@@ -725,9 +754,24 @@ def main():
         has_pitch = stem in pitch_lookup
 
         if has_depth and has_pitch:
-            # Compute depth-derived normals (smoothed depth → 3D → finite diff)
-            normal_cam, valid_normal, depth_smooth = compute_depth_normals(
-                depth_lookup[stem], intrinsics_lookup[stem], sigma=3.0)
+            # Get normals: MVS native from input_data, or depth-derived
+            if stem in normal_lookup:
+                normal_cam = normal_lookup[stem]  # (3, H, W) [-1, 1]
+                valid_normal = np.abs(normal_cam).sum(axis=0) > 0.1
+                # Resize if resolution mismatch
+                nh, nw = normal_cam.shape[1], normal_cam.shape[2]
+                dh, dw = depth_lookup[stem].shape
+                if (nh, nw) != (dh, dw):
+                    normal_cam = cv2.resize(normal_cam.transpose(1, 2, 0),
+                                            (dw, dh),
+                                            interpolation=cv2.INTER_NEAREST).transpose(2, 0, 1)
+                    valid_normal = np.abs(normal_cam).sum(axis=0) > 0.1
+                # Still need smoothed depth for height computation
+                _, _, depth_smooth = compute_depth_normals(
+                    depth_lookup[stem], intrinsics_lookup[stem], sigma=3.0)
+            else:
+                normal_cam, valid_normal, depth_smooth = compute_depth_normals(
+                    depth_lookup[stem], intrinsics_lookup[stem], sigma=3.0)
             gravity_up_cam = compute_gravity_up_cam(pitch_lookup[stem])
             seg_map = process_image_hybrid(
                 str(img_path),

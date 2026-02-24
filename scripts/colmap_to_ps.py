@@ -464,9 +464,23 @@ def convert(args):
             raise FileNotFoundError(
                 f"MVS depth maps not found at {depth_map_dir}. "
                 "Run COLMAP patch_match_stereo first.")
-        has_normal_maps = os.path.isdir(normal_map_dir)
-        if not has_normal_maps:
-            print("[WARN] MVS normal_maps dir not found, falling back to finite-diff normals")
+
+        normal_source = getattr(args, 'normal_source', 'auto')
+        if normal_source == 'finite_diff':
+            use_mvs_normals = False
+            print("[INFO] Normal source: finite-diff (forced by --normal_source)")
+        elif normal_source == 'mvs':
+            if not os.path.isdir(normal_map_dir):
+                raise FileNotFoundError(
+                    f"--normal_source mvs but normal_maps not found at {normal_map_dir}")
+            use_mvs_normals = True
+            print("[INFO] Normal source: MVS native (forced by --normal_source)")
+        else:  # auto
+            use_mvs_normals = os.path.isdir(normal_map_dir)
+            if not use_mvs_normals:
+                print("[WARN] MVS normal_maps dir not found, falling back to finite-diff normals")
+            else:
+                print("[INFO] Normal source: MVS native (auto-detected)")
 
         depth_maps_list = []
         normal_maps_list = []
@@ -498,9 +512,9 @@ def convert(args):
                 depth = cv2.resize(depth, (tgt_w, tgt_h),
                                    interpolation=cv2.INTER_NEAREST)
 
-            # Load COLMAP native normal map (preferred) or fall back to finite-diff
+            # Load normal: MVS native or finite-diff
             geo_normal_path = os.path.join(normal_map_dir, f'{image_name}.geometric.bin')
-            if has_normal_maps and os.path.exists(geo_normal_path):
+            if use_mvs_normals and os.path.exists(geo_normal_path):
                 mvs_normal = read_colmap_array(geo_normal_path)  # (H_mvs, W_mvs, 3) [-1,1] not unit
                 # Resize to target resolution if needed
                 if mvs_normal.shape[:2] != (tgt_h, tgt_w):
@@ -571,6 +585,7 @@ def convert(args):
         'out_path': args.output_path,
         'init_method': args.init_method,
         'depth_source': depth_source,
+        'normal_source': getattr(args, 'normal_source', 'auto'),
     }
 
     if pcd_path:
@@ -647,6 +662,11 @@ def main():
                         help='Initialization method (colmap: TSDF mesh from Metric3D + COLMAP scale alignment)')
     parser.add_argument('--depth_source', choices=['mono', 'mvs'], default='mono',
                         help='Depth supervision source: mono (Metric3D) or mvs (COLMAP geometric depth)')
+    parser.add_argument('--normal_source', choices=['auto', 'mvs', 'finite_diff'], default='auto',
+                        help='Normal source for --depth_source mvs: '
+                             'auto (MVS native if available, else finite-diff), '
+                             'mvs (force MVS native), '
+                             'finite_diff (force depth-derived finite-diff)')
     parser.add_argument('--max_images', type=int, default=-1,
                         help='Max number of images to use (-1 for all)')
     parser.add_argument('--use_precomputed', action='store_true',

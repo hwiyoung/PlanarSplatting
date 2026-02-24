@@ -170,8 +170,11 @@ def main():
     parser.add_argument('--checkpoint', required=True)
     parser.add_argument('--output_dir', required=True)
     parser.add_argument('--num_views', type=int, default=3)
+    parser.add_argument('--views', type=int, nargs='+', default=None,
+                        help='Specific view indices to render (overrides --num_views)')
     args = parser.parse_args()
-    render_and_save(args.checkpoint, args.output_dir, args.num_views)
+    render_and_save(args.checkpoint, args.output_dir, args.num_views,
+                    view_indices=args.views)
 
 
 if __name__ == '__main__':

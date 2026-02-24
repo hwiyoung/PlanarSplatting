@@ -196,7 +196,7 @@ docs/EXPERIMENT_PLAN.md의 Phase 1을 진행해줘. 컨테이너 내부에서 �
 변경:
 1. Depth Anything → MVS depth (절대 깊이, L1 loss)
 2. MVS 신뢰도 마스킹
-3. L_normal도 MVS depth 유도 법선으로 교체
+3. L_normal도 MVS native 법선으로 교체 (COLMAP PatchMatch stereo 직접 출력)
 4. --depth_source mvs/mono 플래그
 5. 패키지 필요하면 Dockerfile에도 추가
 
@@ -207,6 +207,7 @@ CLAUDE.md 진행 상태 업데이트.
 ```
 
 **완료 노트:** MVS depth + MVS native normal 적용. Depth MAE=0.053, Normal cos=0.840 (vs MVS GT). `results/phase1/` 참조.
+**Addendum (2026-02-24):** `read_colmap_array()`의 planar layout 버그 발견 및 수정. Cross-evaluation(FD vs MVS 2×2 행렬) 결과 MVS native가 depth MAE -6.9% 우수, normal cos 동등. `results/phase1_normal_comparison/REPORT.md` 참조.
 
 ---
 
@@ -218,9 +219,10 @@ CLAUDE.md 진행 상태 업데이트.
 
 **최종 구현 (v10: Confident Labels Only + Ambiguous as Background):**
 - Grounded SAM (building + ground) → DJI gimbal pitch로 camera frame gravity 계산 → depth-derived normal dot product + height-based classification으로 roof/wall/ground 분류
-- Normal source: **smoothed MVS depth → 3D unprojection → finite-diff normals** (camera frame, [-1,1])
-  - MVS PatchMatch normals는 텍스처 없는 facade에서 퇴화 (|dot|≈0.755 uniform) → depth-derived로 전환
-  - MVS depth는 multi-view 삼각측량으로 기하학적 검증됨 → 신뢰할 수 있음
+- Normal source: **MVS native normals** (input_data.pth에서 로드, `--normal_source input_data`)
+  - 이전: depth-derived normals 사용 (MVS PatchMatch normals가 퇴화한다고 진단)
+  - 수정 (2026-02-24): 퇴화 진단은 `read_colmap_array()` planar 읽기 버그 artifact였음. 버그 수정 후 MVS native normals로 통일.
+  - Fallback: `--normal_source computed`로 depth-derived 사용 가능
 - Gravity source: DJI EXIF `drone-dji:GimbalPitchDegree` → `gravity_up_cam = [0, -cos(pitch), sin(pitch)]`
 - Two-threshold system: horiz_thresh=0.85 (strong horizontal), wall_thresh=0.3 (strong vertical)
 - **Ambiguous normals (0.3 < |dot| ≤ 0.85) → background(0)**: multi-view 일관적 오분류 방지, L_mutual에 위임
@@ -254,7 +256,7 @@ MVS Hybrid 접근법으로 구현:
 4. Score-based overlap: building_score > ground_score → building zone으로 배정
 5. Normal 없는 픽셀 → background(0, ignore_index=0)
 6. MVS normal/DJI pitch 없는 이미지 → text-only fallback
-7. Normal source: **depth-derived** (smoothed MVS depth → 3D → finite-diff, compute_depth_normals() in generate_segmentation.py)
+7. Normal source: **MVS native** (`--normal_source input_data`, input_data.pth에서 로드. Fallback: `--normal_source computed`)
 
 - 입력: 이미지 폴더 + input_data.pth + raw DJI 이미지 (EXIF용)
 - 출력: seg_maps/ (class index png) + seg_vis/ (오버레이 확인용)

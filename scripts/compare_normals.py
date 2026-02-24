@@ -21,6 +21,39 @@ from colmap_to_ps import depth_to_normal_cam, read_colmap_array
 from generate_segmentation import compute_depth_normals
 
 
+def read_colmap_array_buggy(path):
+    """Read COLMAP array with the OLD BUGGY interleaved interpretation.
+
+    This was the original bug: treating planar layout as interleaved.
+    COLMAP stores data as (c, h, w) but this reads it as (h, w, c).
+    Result: channels are mixed, per-channel stats become nearly identical.
+    """
+    with open(path, 'rb') as f:
+        header = b''
+        amp_count = 0
+        while amp_count < 3:
+            b = f.read(1)
+            if b == b'&':
+                amp_count += 1
+            header += b
+        parts = header.decode('ascii').split('&')
+        w, h, c = int(parts[0]), int(parts[1]), int(parts[2])
+        data = np.frombuffer(f.read(), dtype=np.float32)[:w * h * c]
+        return data.reshape(h, w, c)  # BUGGY: interleaved interpretation
+
+
+def channel_stats_text(normal_hw3, valid, label):
+    """Get per-channel mean/std text for annotation."""
+    lines = [label]
+    for ch, name in enumerate(['nx', 'ny', 'nz']):
+        vals = normal_hw3[:, :, ch][valid]
+        if len(vals) > 0:
+            lines.append(f"  {name}: mean={vals.mean():.4f} std={vals.std():.4f}")
+        else:
+            lines.append(f"  {name}: N/A")
+    return '\n'.join(lines)
+
+
 def normal_to_color(normal_01_or_neg1, valid, storage='01'):
     """Convert normal map to RGB color image.
     storage='01': input in [0,1] (colmap_to_ps format)
@@ -99,7 +132,12 @@ def main():
     parser.add_argument('--sigma', type=float, default=3.0)
     parser.add_argument('--colmap_path', default=None,
                         help='COLMAP dense dir (for raw normal maps). If set, reads normals from disk instead of input_data.pth')
+    parser.add_argument('--show_bug', action='store_true',
+                        help='Show planar reading bug: interleaved(buggy) vs planar(corrected) side by side. Requires --colmap_path.')
     args = parser.parse_args()
+
+    if args.show_bug and not args.colmap_path:
+        parser.error('--show_bug requires --colmap_path')
 
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -128,10 +166,12 @@ def main():
         valid_fd = np.abs(n_fd).sum(0) > 0.1
 
         # === 2. MVS native ===
+        normal_map_dir = None
+        geo_normal_path = None
         if args.colmap_path:
-            # Read directly from raw COLMAP files (with fixed planar reading)
             normal_map_dir = os.path.join(args.colmap_path, 'dense', 'stereo', 'normal_maps')
             geo_normal_path = os.path.join(normal_map_dir, f'{img_name}.geometric.bin')
+            # Read directly from raw COLMAP files (with fixed planar reading)
             mvs_raw = read_colmap_array(geo_normal_path)  # (H_mvs, W_mvs, 3)
             if mvs_raw.shape[:2] != (H, W):
                 mvs_raw = cv2.resize(mvs_raw, (W, H), interpolation=cv2.INTER_NEAREST)
@@ -147,6 +187,34 @@ def main():
             normal_mvs_01 = data['normal'][view_idx]   # (3,H,W) [0,1]
         n_mvs = to_neg1(normal_mvs_01)
         valid_mvs = (depth > 0) & (np.abs(n_mvs).sum(0) > 0.1)
+
+        # === 2b. MVS buggy reading (for --show_bug mode) ===
+        if args.show_bug and geo_normal_path:
+            buggy_raw = read_colmap_array_buggy(geo_normal_path)  # (H_mvs, W_mvs, 3) BUGGY
+            if buggy_raw.shape[:2] != (H, W):
+                buggy_raw = cv2.resize(buggy_raw, (W, H), interpolation=cv2.INTER_NEAREST)
+            buggy_norm = np.linalg.norm(buggy_raw, axis=-1, keepdims=True)
+            buggy_valid = (buggy_norm.squeeze() > 0.01) & (depth > 0)
+            buggy_raw = np.where(buggy_norm > 0.01, buggy_raw / buggy_norm, 0.0)
+            flip_buggy = buggy_raw[:, :, 2] > 0
+            buggy_raw[flip_buggy] *= -1
+            buggy_raw[~buggy_valid] = 0.0
+            # (H,W,3) [-1,1] → (3,H,W) [0,1]
+            normal_buggy_01 = (buggy_raw.transpose(2, 0, 1).astype(np.float32) + 1.0) / 2.0
+            n_buggy = to_neg1(normal_buggy_01)
+            valid_buggy = (depth > 0) & (np.abs(n_buggy).sum(0) > 0.1)
+
+            # Print channel stats showing the bug evidence
+            print("  --- Buggy (interleaved) channel stats ---")
+            for ch, name in enumerate(['nx', 'ny', 'nz']):
+                vals = buggy_raw[:, :, ch][buggy_valid]
+                if len(vals) > 0:
+                    print(f"    {name}: mean={vals.mean():.4f} std={vals.std():.4f}")
+            print("  --- Corrected (planar) channel stats ---")
+            for ch, name in enumerate(['nx', 'ny', 'nz']):
+                vals = mvs_raw[:, :, ch][mvs_valid_mask]
+                if len(vals) > 0:
+                    print(f"    {name}: mean={vals.mean():.4f} std={vals.std():.4f}")
 
         # === 3. smoothed depth-derived (generate_segmentation.py actual function) ===
         n_sd, valid_sd, _ = compute_depth_normals(depth, intrinsic, sigma=args.sigma)
@@ -187,37 +255,98 @@ def main():
         def resize(img):
             return cv2.resize(img, (sW, sH), interpolation=cv2.INTER_AREA)
 
-        # Row 1: RGB | Depth | (blank)
-        rgb_bgr = resize(cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
-        depth_c = resize(depth_to_color(depth))
-        blank = np.zeros((sH, sW, 3), dtype=np.uint8)
-        row1 = np.concatenate([
-            add_text(rgb_bgr.copy(), f"RGB ({img_name})"),
-            add_text(depth_c.copy(), f"Depth ({cov_depth:.0f}%)"),
-            blank
-        ], axis=1)
+        if args.show_bug and geo_normal_path:
+            # ==== Bug comparison mode ====
+            # Row 1: RGB | Depth
+            rgb_bgr = resize(cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
+            depth_c = resize(depth_to_color(depth))
+            blank = np.zeros((sH, sW, 3), dtype=np.uint8)
+            row1 = np.concatenate([
+                add_text(rgb_bgr.copy(), f"RGB ({img_name})"),
+                add_text(depth_c.copy(), f"Depth ({cov_depth:.0f}%)"),
+                blank,
+            ], axis=1)
 
-        # Row 2: 3 normals
-        n_fd_color = resize(normal_to_color(n_fd_01, valid_fd, '01'))
-        n_mvs_color = resize(normal_to_color(normal_mvs_01, valid_mvs, '01'))
-        n_sd_color = resize(normal_to_color(n_sd, valid_sd, 'neg1'))
-        row2 = np.concatenate([
-            add_text(n_fd_color.copy(), f"1.finite-diff ({cov_fd:.0f}%)"),
-            add_text(n_mvs_color.copy(), f"2.MVS native ({cov_mvs:.0f}%)"),
-            add_text(n_sd_color.copy(), f"3.smoothed-depth ({cov_sd:.0f}%)"),
-        ], axis=1)
+            # Row 2: FD | MVS-buggy | MVS-corrected
+            n_fd_color = resize(normal_to_color(n_fd_01, valid_fd, '01'))
+            n_buggy_color = resize(normal_to_color(normal_buggy_01, valid_buggy, '01'))
+            n_mvs_color = resize(normal_to_color(normal_mvs_01, valid_mvs, '01'))
+            cov_buggy = valid_buggy.sum() / total_px * 100
+            row2 = np.concatenate([
+                add_text(n_fd_color.copy(), f"Finite-Diff ({cov_fd:.0f}%)"),
+                add_text(n_buggy_color.copy(), f"MVS BUGGY interleaved ({cov_buggy:.0f}%)"),
+                add_text(n_mvs_color.copy(), f"MVS CORRECTED planar ({cov_mvs:.0f}%)"),
+            ], axis=1)
 
-        # Row 3: Angle difference heatmaps
-        hm1 = resize(angle_to_heatmap(diff_mvs_fd, both_mvs_fd))
-        hm2 = resize(angle_to_heatmap(diff_sd_fd, both_sd_fd))
-        hm3 = resize(angle_to_heatmap(diff_mvs_sd, both_mvs_sd))
-        row3 = np.concatenate([
-            add_text(hm1.copy(), f"2vs1: {mean_mvs_fd:.1f}deg mean"),
-            add_text(hm2.copy(), f"3vs1: {mean_sd_fd:.1f}deg mean"),
-            add_text(hm3.copy(), f"2vs3: {mean_mvs_sd:.1f}deg mean"),
-        ], axis=1)
+            # Row 3: Angle diffs (buggy vs FD, corrected vs FD, buggy vs corrected)
+            diff_buggy_fd, both_buggy_fd = angular_diff_map(n_buggy, n_fd, valid_buggy, valid_fd)
+            diff_buggy_mvs, both_buggy_mvs = angular_diff_map(n_buggy, n_mvs, valid_buggy, valid_mvs)
+            mean_buggy_fd = diff_buggy_fd[both_buggy_fd].mean() if both_buggy_fd.any() else 0
+            mean_buggy_mvs = diff_buggy_mvs[both_buggy_mvs].mean() if both_buggy_mvs.any() else 0
 
-        full = np.concatenate([row1, row2, row3], axis=0)
+            hm1 = resize(angle_to_heatmap(diff_buggy_fd, both_buggy_fd))
+            hm2 = resize(angle_to_heatmap(diff_mvs_fd, both_mvs_fd))
+            hm3 = resize(angle_to_heatmap(diff_buggy_mvs, both_buggy_mvs))
+            row3 = np.concatenate([
+                add_text(hm1.copy(), f"buggy vs FD: {mean_buggy_fd:.1f}deg"),
+                add_text(hm2.copy(), f"corrected vs FD: {mean_mvs_fd:.1f}deg"),
+                add_text(hm3.copy(), f"buggy vs corrected: {mean_buggy_mvs:.1f}deg"),
+            ], axis=1)
+
+            # Row 4: Channel stats text panels
+            def stats_panel(normal_hw3, valid_mask, title):
+                panel = np.zeros((sH // 2, sW, 3), dtype=np.uint8)
+                y = 15
+                panel = add_text(panel, title, pos=(10, y), scale=0.5)
+                for ch, name in enumerate(['nx', 'ny', 'nz']):
+                    vals = normal_hw3[:, :, ch][valid_mask]
+                    if len(vals) > 0:
+                        y += 22
+                        panel = add_text(panel, f"{name}: m={vals.mean():.4f} s={vals.std():.4f}",
+                                         pos=(10, y), scale=0.45)
+                return panel
+
+            sp1 = stats_panel(np.stack([to_neg1(n_fd_01)[i] for i in range(3)], axis=-1),
+                              valid_fd, "FD stats")
+            sp2 = stats_panel(buggy_raw, buggy_valid, "BUGGY stats (channels mixed)")
+            sp3 = stats_panel(mvs_raw, mvs_valid_mask, "CORRECTED stats")
+            row4 = np.concatenate([sp1, sp2, sp3], axis=1)
+
+            full = np.concatenate([row1, row2, row3, row4], axis=0)
+        else:
+            # ==== Normal 3-source comparison mode ====
+            # Row 1: RGB | Depth | (blank)
+            rgb_bgr = resize(cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
+            depth_c = resize(depth_to_color(depth))
+            blank = np.zeros((sH, sW, 3), dtype=np.uint8)
+            row1 = np.concatenate([
+                add_text(rgb_bgr.copy(), f"RGB ({img_name})"),
+                add_text(depth_c.copy(), f"Depth ({cov_depth:.0f}%)"),
+                blank
+            ], axis=1)
+
+            # Row 2: 3 normals
+            n_fd_color = resize(normal_to_color(n_fd_01, valid_fd, '01'))
+            n_mvs_color = resize(normal_to_color(normal_mvs_01, valid_mvs, '01'))
+            n_sd_color = resize(normal_to_color(n_sd, valid_sd, 'neg1'))
+            row2 = np.concatenate([
+                add_text(n_fd_color.copy(), f"1.finite-diff ({cov_fd:.0f}%)"),
+                add_text(n_mvs_color.copy(), f"2.MVS native ({cov_mvs:.0f}%)"),
+                add_text(n_sd_color.copy(), f"3.smoothed-depth ({cov_sd:.0f}%)"),
+            ], axis=1)
+
+            # Row 3: Angle difference heatmaps
+            hm1 = resize(angle_to_heatmap(diff_mvs_fd, both_mvs_fd))
+            hm2 = resize(angle_to_heatmap(diff_sd_fd, both_sd_fd))
+            hm3 = resize(angle_to_heatmap(diff_mvs_sd, both_mvs_sd))
+            row3 = np.concatenate([
+                add_text(hm1.copy(), f"2vs1: {mean_mvs_fd:.1f}deg mean"),
+                add_text(hm2.copy(), f"3vs1: {mean_sd_fd:.1f}deg mean"),
+                add_text(hm3.copy(), f"2vs3: {mean_mvs_sd:.1f}deg mean"),
+            ], axis=1)
+
+            full = np.concatenate([row1, row2, row3], axis=0)
+
         out_path = os.path.join(args.output_dir, f"normal_compare_view{view_idx:03d}.png")
         cv2.imwrite(out_path, full)
         print(f"  Saved: {out_path}")
