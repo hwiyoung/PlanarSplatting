@@ -1,5 +1,14 @@
 # Building Instance Segmentation 분석
 
+## TL;DR
+- **채택**: 전략 2 — 기하학 기반 grouping(접근 B) + SAM instance vote(접근 A) 하이브리드
+- **시점**: Phase 4 Part 2 (학습 파이프라인 Phase 3-A~3-C 변경 없음)
+- **논문 위치**: 기여 3(CityGML 호환성)의 구현 요소 — 독립적 연구 기여 아님
+- **향후 연구**: Learnable instance embedding (접근 C, 3-way mutual)
+- **상세 구현**: EXPERIMENT_PLAN.md Phase 4 프롬프트 참조
+
+---
+
 ## 문제 정의
 
 현재 파이프라인은 primitive 단위로 semantic class (roof/wall/ground)를 분류하지만,
@@ -130,9 +139,10 @@ Semantics (c_i) ←→ Instance (b_i)
 - 3-way mutual이 작동하면 강력한 연구 기여
 
 **빈틈**:
-1. **Instance GT 필요**: pull/push loss에 "어떤 primitive가 같은 건물인지" 라벨 필요
-   - 해법 A: SAM instance를 GT로 사용 (접근 A의 문제 계승)
-   - 해법 B: Self-supervised (spatial proximity를 pseudo-label로) → 하지만 인접 건물 문제
+1. **SAM에 대한 critical dependency**: 접근 C에서 SAM instance는 pull/push loss의 GT signal 역할. SAM multi-view 매칭 오류가 학습 signal에 직접 전파되어 학습 자체를 오염시킬 수 있음.
+   - 접근 B+A에서 SAM은 보조 역할 — 기하 기반 fallback 존재, 매칭 오류의 영향이 제한적
+   - **핵심: SAM 사용 여부가 아니라 SAM 품질에 대한 의존도가 기각 근거**
+   - Self-supervised 대안(spatial proximity pseudo-label)도 인접 건물 문제로 인해 불안정
 2. **Number of instances 미지**: scene마다 건물 수가 다름 → 고정 class CE 사용 불가
    - Discriminative loss가 이를 해결하지만, 클러스터링 단계 필요
 3. **연구 범위 확대**: L_mutual (2-way)이 핵심 기여인데 3-way로 확장하면 focus 분산
@@ -260,6 +270,9 @@ Phase 4: CityGML (instance 정보 활용)
 2. 같은 클래스 + cos(normal) > 0.95 + 중심 거리 < 2*r_i → 병합  ← 동일
 3. ★ Building grouping:                                         ← 신규
    3a. 병합된 roof surface → XZ 투영 → connected component → building_id
+       - threshold: max(r_i) × 3 사용 근거: 성수동 r_i ≈ 0.3~1.5m, 도로 폭 ≈ 4~8m
+         → max(r_i) × 3 ≈ 4.5m < 도로 폭 → 인접 건물 분리에 적합
+         → 실제값은 Phase 4에서 데이터 기반 튜닝
    3b. 각 wall surface → 가장 가까운 roof component에 귀속
    3c. 각 building의 roof boundary → 지면 투영 → GroundSurface
 4. Per-building alpha shape → 경계 다각형                        ← 수정
@@ -273,21 +286,17 @@ Phase 4: CityGML (instance 정보 활용)
 
 ---
 
-## 결정 필요 사항
+## 결정 사항 (2026-02-27 확정)
 
-1. **어느 전략으로 갈 것인가?** (전략 1/2/3)
-   - 전략 1: 최소 변경, Phase 4 후처리만
-   - 전략 2: SAM instance 보존 추가 (중간)
-   - 전략 3: Learnable instance (연구 확장)
+1. **전략 2 채택**: 기하학 기반 grouping(접근 B) + SAM instance vote(접근 A) 하이브리드
+   - Phase 4 Part 2에서 구현. 학습 파이프라인(Phase 3-A~3-C)에 변경 없음
+   - Phase 2-A 사후 보완으로 `--save_instance_maps` 추가 (Phase 4 진입 전 수행)
+   - 전략 3(learnable instance embedding)은 향후 연구로 남김
 
-2. **언제 결정할 것인가?**
-   - 지금: 전략 2 정도로 확정하고 Phase 2-A 수정 선행
-   - Phase 3-B 이후: L_mutual 결과를 보고 전략 3 여부 판단
-   - Phase 4 진입 시: 실제 CityGML 변환 시 필요한 수준 판단
-
-3. **논문 구조에 어떻게 반영할 것인가?**
-   - 핵심 기여 = L_mutual (2-way geometry ↔ semantics)
-   - Building instance = "응용" 챕터 vs "확장" 챕터 vs 별도 논문
+2. **논문에서의 위치**: Building instance는 기여 3(CityGML 호환성 검증)의 공학적 구현 요소
+   - 독립적 연구 기여가 아닌 파이프라인 변환 단계로 서술 (Chapter 5)
+   - 핵심 기여(L_mutual, Chapter 4)와 독립적
+   - 한계(동일 높이 인접 건물 under-segmentation)를 명시하고 instance-aware embedding을 향후 연구로 제시
 
 ---
 

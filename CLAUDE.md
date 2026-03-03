@@ -176,15 +176,21 @@ python scripts/evaluate.py --checkpoint path/to/latest.pth --compare_with prev_r
 - [x] Phase 2-A: 2D Segmentation 생성 (v10: Confident Labels Only, ambiguous→BG, Roof 5.9%/Wall 23.4%/Ground 19.5%, Go)
 - [x] Phase 2-B: 의미론적 헤드 구현 (f_i parameter, L_sem, L_geo, CUDA backward fix, gradient isolation 검증 완료)
 - [x] Phase 2-C: L_sem 독립 학습 (Depth MAE=0.027, Normal cos=0.782, mIoU=0.810, Go)
-- [ ] Phase 3-A: L_mutual 구현
-- [ ] Phase 3-B: Ablation 7조건 학습
-- [ ] Phase 3-C: L_photo 추가 실험 (선택적, core ablation 이후)
-- [ ] Phase 4: CityGML 변환 + 검증
+- [ ] Phase 3-A: L_mutual 구현 (양방향 gradient 검증, warmup curriculum)
+- [ ] Phase 3-B: Ablation 7조건 — (a)GeoOnly (b)SemOnly (c)Independent (d)Joint (e)Sem→Geo (f)Geo→Sem (g)NoWarmup
+- [ ] Phase 3-C: L_photo 추가 — (h)Photo+Indep (i)Photo+Joint (선택적, 논문 유형에 따라)
+- [ ] Phase 4: Building Grouping + CityGML LOD2 변환 + val3dity 검증
 
 ## 중요 규칙
 - **Docker:** 모든 명령은 컨테이너 내부에서. pip install 시 Dockerfile에도 반영.
 - f_i는 adaptive density control (split/clone/prune) 시 반드시 함께 처리 (구현 완료, Phase 2-B)
 - L_mutual에서 detach 금지 (양방향 gradient 필수). ablation 시에만 선택적 detach
+- **L_mutual 구조** (3항, 각 항의 물리적 의미):
+  - `p_wall · L_vert`: 벽 프리미티브의 법선 → 수평 (n·e_gravity ≈ 0)
+  - `p_roof · L_slope`: 지붕 프리미티브가 벽처럼 수평이면 penalty, τ=0.15 (단측)
+  - `p_ground · L_horiz`: 지면 프리미티브의 법선 → 수직 (|n·e_gravity| ≈ 1)
+  - `e_gravity = [0,-1,0]` (COLMAP world frame, 검증값: world_up avg [+0.022,-0.998,+0.055])
+  - **detach 금지** (양방향 gradient 필수). ablation (e)/(f)에서만 선택적 detach
 - **Semantic 렌더링**: Option A 확정 (raw f_i → colors_precomp → CUDA rasterizer alpha-blend → softmax → CE loss)
 - **CUDA rasterizer 수정 사항** (Phase 2-B): config.h NUM_CHANNELS=4, backward.cu에 color gradient atomicAdd 추가. Color→alpha gradient path는 의도적 미구현 (L_sem→geometry 격리).
 - 기존 PlanarSplatting 기능 보존: `--enable_semantic` 플래그로 새 기능 on/off (default=False)
