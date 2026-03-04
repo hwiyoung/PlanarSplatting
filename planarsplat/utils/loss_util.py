@@ -51,6 +51,69 @@ def semantic_loss(rendered_features, seg_gt, mask=None):
     return ce
 
 
+# ==================== Phase 3-A: L_mutual ====================
+
+def mutual_loss(semantic_features, plane_normals, e_gravity, tau=0.15, mode='full'):
+    """L_mutual: bidirectional geometric-semantic consistency loss.
+
+    Per-primitive loss encouraging consistency between semantic class
+    probabilities (from f_i) and geometric normal orientations (from R_i).
+    Operates directly at the primitive level (no rendering involved).
+
+    Three geometric terms:
+      - L_vert(n)  = (n . e_gravity)^2         -- 0 when horizontal (walls)
+      - L_horiz(n) = (1 - |n . e_gravity|)^2   -- 0 when vertical (ground)
+      - L_slope(n) = relu(tau - (n.e_gravity)^2)^2  -- one-sided wall exclusion (roofs)
+
+    L_mutual = mean_i [ p_wall * L_vert + p_roof * L_slope + p_ground * L_horiz ]
+
+    Args:
+        semantic_features: (N, C) raw semantic logits, C=4 (bg/roof/wall/ground)
+        plane_normals: (N, 3) per-primitive normal vectors in world frame
+        e_gravity: (3,) gravity direction unit vector, e.g. [0, -1, 0]
+        tau: threshold for L_slope (default 0.15)
+        mode: 'full' -- bidirectional gradient (no detach)
+              'sem2geo' -- detach softmax(f_i), only R_i gets gradient
+              'geo2sem' -- detach n_i, only f_i gets gradient
+              'none' -- returns zero (disabled)
+
+    Returns:
+        loss scalar
+    """
+    if mode == 'none':
+        return torch.tensor(0., device=semantic_features.device, requires_grad=True)
+
+    # Class probabilities: (N, C) where C=4 (bg=0, roof=1, wall=2, ground=3)
+    p = F.softmax(semantic_features, dim=-1)
+    p_roof = p[:, 1]
+    p_wall = p[:, 2]
+    p_ground = p[:, 3]
+
+    if mode == 'sem2geo':
+        # Only R_i gets gradient (semantics -> geometry direction)
+        p_roof = p_roof.detach()
+        p_wall = p_wall.detach()
+        p_ground = p_ground.detach()
+
+    # Per-primitive normal dot gravity
+    n = F.normalize(plane_normals, dim=-1)
+    if mode == 'geo2sem':
+        # Only f_i gets gradient (geometry -> semantics direction)
+        n = n.detach()
+
+    dot = (n * e_gravity.to(n.device)).sum(dim=-1)  # (N,)
+
+    # Geometric terms
+    L_vert = dot ** 2                          # 0 when horizontal
+    L_horiz = (1.0 - dot.abs()) ** 2           # 0 when vertical
+    L_slope = F.relu(tau - dot ** 2) ** 2      # one-sided wall exclusion
+
+    # Weighted sum per primitive, mean over all primitives
+    loss = (p_wall * L_vert + p_roof * L_slope + p_ground * L_horiz).mean()
+
+    return loss
+
+
 def normal_consistency_loss(depth, normal_rendered, intrinsic, mask=None):
     """L_geo (L_normal_consistency): rendered normal vs depth-derived normal.
 

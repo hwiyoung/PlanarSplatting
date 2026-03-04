@@ -1,0 +1,23 @@
+{
+  "L_mutual_value": 0.16824516654014587,
+  "grad_f_full": 0.21680013835430145,
+  "grad_n_full": 0.2687183618545532,
+  "grad_f_sem2geo": 0.0,
+  "grad_n_sem2geo": 0.2687183618545532,
+  "grad_f_geo2sem": 0.21680013835430145,
+  "grad_n_geo2sem": 0.0,
+  "L_mutual_none": 0.0,
+  "L_mutual_real": 0.1675858199596405,
+  "grad_f_real": 0.209088996052742,
+  "grad_R_rot_q_normal_wxy": 0.4619992971420288,
+  "grad_R_rot_q_xyAxis_w": 0.0,
+  "grad_R_rot_q_xyAxis_z": 8.407369023188949e-09,
+  "grad_R_total": 0.46199930554939783,
+  "grad_center": 0.0,
+  "normal_consistency_diff": 0.0,
+  "warmup_ok": true,
+  "real_sem2geo_f": 0.0,
+  "real_sem2geo_R": 0.4619992971420288,
+  "real_geo2sem_f": 0.209088996052742,
+  "real_geo2sem_R": 0.0
+}

@@ -242,6 +242,26 @@ class PlanarSplat_Network(nn.Module):
             raise
         return plane_radii.clamp(min=self.min_radii, max=self.max_radii)
 
+    def get_plane_normals_differentiable(self):
+        """Compute per-primitive normals directly from quaternion parameters.
+
+        Returns the third column of the rotation matrix (= plane normal)
+        without building the full 3x3 matrix. Fully differentiable through
+        the quaternion nn.Parameters, with no in-place ops.
+
+        Returns:
+            plane_normals: (N, 3) unit normals in world frame
+        """
+        plane_rot_q_xyAxis, plane_rot_q_normal = self.get_plane_rot_q()
+        plane_rot_q = model_util.quaternion_mult(plane_rot_q_normal, plane_rot_q_xyAxis)
+        q = F.normalize(plane_rot_q, dim=-1)
+        qr, qi, qj, qk = q[:, 0], q[:, 1], q[:, 2], q[:, 3]
+        # Third column of rotation matrix R = quat_to_rot(q)
+        nx = 2 * (qi * qk + qr * qj)
+        ny = 2 * (qj * qk - qi * qr)
+        nz = 1 - 2 * (qi ** 2 + qj ** 2)
+        return torch.stack([nx, ny, nz], dim=-1)
+
     def get_plane_geometry(self, ite=-1):
         fix_rot_normal = self.plane_cfg.fix_rot_normal
         fix_rot_xy = self.plane_cfg.fix_rot_xy

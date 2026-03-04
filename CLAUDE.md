@@ -90,7 +90,8 @@ PlanarSplatting/
 │   ├── render_views.py                  # 체크포인트 → RGB/Depth/Normal 이미지 렌더링
 │   ├── colmap_to_ps.py                  # COLMAP 출력 → PlanarSplatting input_data.pth 변환
 │   ├── generate_segmentation.py         # Grounded SAM 2 + MVS normal → seg_maps 생성
-│   └── gradient_check_phase2b.py        # Phase 2-B gradient check (6개 자동 테스트)
+│   ├── gradient_check_phase2b.py        # Phase 2-B gradient check (6개 자동 테스트)
+│   └── gradient_check_phase3a.py        # Phase 3-A gradient check (14개 자동 테스트: L_mutual 양방향)
 │
 ├── planarSplat_ExpRes/                  # 실험 결과 (볼륨 마운트)
 │   ├── demo/                            # 실험별 하위: exp_name/timestamp/
@@ -176,7 +177,7 @@ python scripts/evaluate.py --checkpoint path/to/latest.pth --compare_with prev_r
 - [x] Phase 2-A: 2D Segmentation 생성 (v10: Confident Labels Only, ambiguous→BG, Roof 5.9%/Wall 23.4%/Ground 19.5%, Go)
 - [x] Phase 2-B: 의미론적 헤드 구현 (f_i parameter, L_sem, L_geo, CUDA backward fix, gradient isolation 검증 완료)
 - [x] Phase 2-C: L_sem 독립 학습 (Depth MAE=0.027, Normal cos=0.782, mIoU=0.810, Go)
-- [ ] Phase 3-A: L_mutual 구현 (양방향 gradient 검증, warmup curriculum)
+- [x] Phase 3-A: L_mutual 구현 (양방향 gradient 검증 14/14 PASS, warmup curriculum, ablation .conf 7개)
 - [ ] Phase 3-B: Ablation 7조건 — (a)GeoOnly (b)SemOnly (c)Independent (d)Joint (e)Sem→Geo (f)Geo→Sem (g)NoWarmup
 - [ ] Phase 3-C: L_photo 추가 — (h)Photo+Indep (i)Photo+Joint (선택적, 논문 유형에 따라)
 - [ ] Phase 4: Building Grouping + CityGML LOD2 변환 + val3dity 검증

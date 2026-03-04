@@ -15,7 +15,8 @@ from utils.misc_util import setup_logging, get_train_param, save_config_files, p
 from utils.trainer_util import resume_model, calculate_plane_depth, plot_plane_img, save_checkpoints
 from utils.mesh_util import get_coarse_mesh
 from utils.merge_util import merge_plane
-from utils.loss_util import normal_loss, metric_depth_loss, semantic_loss, normal_consistency_loss
+from utils.loss_util import normal_loss, metric_depth_loss, semantic_loss, normal_consistency_loss, mutual_loss
+from utils import model_util
 
 import rerun as rr
 try:
@@ -68,6 +69,13 @@ class PlanarSplatTrainRunner():
         self.enable_semantic = self.conf.get_bool('plane_model.enable_semantic', default=False)
         self.lambda_sem = loss_plane_conf.get_float('lambda_sem', default=0.1)
         self.lambda_geo = loss_plane_conf.get_float('lambda_geo', default=0.0)
+        # L_mutual (Phase 3-A)
+        self.lambda_mutual = loss_plane_conf.get_float('lambda_mutual', default=0.0)
+        self.mutual_warmup_start = loss_plane_conf.get_float('mutual_warmup_start', default=0.33)
+        self.mutual_warmup_end = loss_plane_conf.get_float('mutual_warmup_end', default=0.67)
+        self.mutual_tau = loss_plane_conf.get_float('mutual_tau', default=0.15)
+        self.mutual_mode = self.conf.get_string('plane_model.mutual_mode', default='full')
+        self.e_gravity = torch.tensor([0., -1., 0.], device='cuda')
 
         # ======================================= training settings
         self.max_total_iters = self.conf.get_int('train.max_total_iters')
@@ -415,6 +423,51 @@ class PlanarSplatTrainRunner():
             self._log_tb_pointcloud(iter=0, pcd_path=vggt_pcd_path, tag='input/vggt_pointcloud')
             self._log_tb_text(iter=0, text=f"input vggt point cloud: {vggt_pcd_path}")
     
+    def _gradient_check_mutual(self):
+        """Phase 3-A: Verify L_mutual gradient flows to both f_i and R_i."""
+        if not self.enable_semantic or self.lambda_mutual <= 0:
+            return
+        logger.info("=" * 50)
+        logger.info("Phase 3-A: L_mutual gradient check at training start")
+        logger.info("=" * 50)
+
+        plane_normals = self.net.planarSplat.get_plane_normals_differentiable()
+        f_i = self.net.planarSplat._plane_semantic_features
+
+        for mode_name in ['full', 'sem2geo', 'geo2sem']:
+            loss_m = mutual_loss(f_i, plane_normals, self.e_gravity,
+                                 tau=self.mutual_tau, mode=mode_name)
+
+            grad_f = torch.autograd.grad(loss_m, f_i, retain_graph=True, allow_unused=True)[0]
+            grad_f_norm = 0.0 if grad_f is None else grad_f.abs().sum().item()
+
+            R_params = [self.net.planarSplat._plane_rot_q_normal_wxy,
+                        self.net.planarSplat._plane_rot_q_xyAxis_w,
+                        self.net.planarSplat._plane_rot_q_xyAxis_z]
+            total_R_norm = 0.0
+            for param in R_params:
+                g = torch.autograd.grad(loss_m, param, retain_graph=True, allow_unused=True)[0]
+                if g is not None:
+                    total_R_norm += g.abs().sum().item()
+
+            logger.info(f"  mode={mode_name}: L_mutual={loss_m.item():.6f}, "
+                        f"∂L/∂f_i={grad_f_norm:.6f}, ∂L/∂R_i={total_R_norm:.6f}")
+
+            if mode_name == 'full':
+                ok = grad_f_norm > 0 and total_R_norm > 0
+                logger.info(f"    → {'PASS: bidirectional' if ok else 'FAIL: gradient missing!'}")
+            elif mode_name == 'sem2geo':
+                ok_R = total_R_norm > 0
+                ok_f = grad_f_norm == 0
+                logger.info(f"    → R_i={'OK' if ok_R else 'ZERO'}, f_i={'OK(zero)' if ok_f else 'UNEXPECTED(non-zero)'}")
+            elif mode_name == 'geo2sem':
+                ok_f = grad_f_norm > 0
+                ok_R = total_R_norm == 0
+                logger.info(f"    → f_i={'OK' if ok_f else 'ZERO'}, R_i={'OK(zero)' if ok_R else 'UNEXPECTED(non-zero)'}")
+
+        self.net.optimizer.zero_grad()
+        logger.info("=" * 50)
+
     def train(self):
         logger.info("Training...")
         if self.start_iter >= self.max_total_iters:
@@ -425,7 +478,8 @@ class PlanarSplatTrainRunner():
         logger.info('Start training at {:%Y_%m_%d_%H_%M_%S}'.format(datetime.now()))
         self.net.train()
         if self.iter_step == 0:
-            self.check_plane_visibility_cuda()  
+            self.check_plane_visibility_cuda()
+            self._gradient_check_mutual()
 
         view_info_list = None
         progress_bar = tqdm(range(self.start_iter, self.max_total_iters+1), desc="Training progress")
@@ -495,6 +549,28 @@ class PlanarSplatTrainRunner():
                     loss_final += self.lambda_geo * loss_geo * decay
                     loss_geo_value = loss_geo.detach().item()
 
+            # ------------ L_mutual (Phase 3-A): per-primitive geometric-semantic consistency
+            loss_mutual_value = 0.
+            lambda_m_curr = 0.
+            if self.enable_semantic and self.lambda_mutual > 0:
+                # Warmup schedule: 3-stage curriculum
+                progress = iter / self.max_total_iters
+                if progress < self.mutual_warmup_start:
+                    lambda_m_curr = 0.0
+                elif progress < self.mutual_warmup_end:
+                    t = (progress - self.mutual_warmup_start) / (self.mutual_warmup_end - self.mutual_warmup_start)
+                    lambda_m_curr = self.lambda_mutual * t
+                else:
+                    lambda_m_curr = self.lambda_mutual
+
+                if lambda_m_curr > 0:
+                    plane_normals = self.net.planarSplat.get_plane_normals_differentiable()
+                    f_i = self.net.planarSplat._plane_semantic_features
+                    loss_mutual = mutual_loss(f_i, plane_normals, self.e_gravity,
+                                              tau=self.mutual_tau, mode=self.mutual_mode)
+                    loss_final += lambda_m_curr * loss_mutual * decay
+                    loss_mutual_value = loss_mutual.detach().item()
+
             # ======================================= backward & update plane denom & update learning rate
             loss_final.backward()
             self.net.optimizer.step()
@@ -526,6 +602,9 @@ class PlanarSplatTrainRunner():
                     if self.enable_semantic:
                         loss_dict["L_sem"] = f"{loss_sem_value:.4f}"
                         loss_dict["L_geo"] = f"{loss_geo_value:.4f}"
+                        if self.lambda_mutual > 0:
+                            loss_dict["L_mut"] = f"{loss_mutual_value:.4f}"
+                            loss_dict["λ_m"] = f"{lambda_m_curr:.4f}"
                     progress_bar.set_postfix(loss_dict)
                     status_line = (
                         "iter={} planes={} depth_loss={:.6f} normal_l1={:.6f} normal_cos={:.6f} "
@@ -559,7 +638,11 @@ class PlanarSplatTrainRunner():
                     if self.enable_semantic and self.tb_writer is not None:
                         self.tb_writer.add_scalar('loss/semantic', loss_sem_value, iter)
                         self.tb_writer.add_scalar('loss/geo_nc', loss_geo_value, iter)
-                        # Log class distribution every 100 iters
+                        # L_mutual logging (Phase 3-A)
+                        if self.lambda_mutual > 0:
+                            self.tb_writer.add_scalar('loss/mutual', loss_mutual_value, iter)
+                            self.tb_writer.add_scalar('mutual/lambda_effective', lambda_m_curr, iter)
+                        # Log class distribution and gradient norms every 100 iters
                         if iter % 100 == 0:
                             with torch.no_grad():
                                 sem_feat = self.net.planarSplat._plane_semantic_features
@@ -567,6 +650,14 @@ class PlanarSplatTrainRunner():
                                 for c_idx, c_name in enumerate(['bg', 'roof', 'wall', 'ground']):
                                     count = (class_pred == c_idx).sum().item()
                                     self.tb_writer.add_scalar(f'semantic/class_{c_name}_count', count, iter)
+                            # Gradient norms (Phase 3-A): read .grad after backward
+                            if self.lambda_mutual > 0:
+                                f_grad = self.net.planarSplat._plane_semantic_features.grad
+                                if f_grad is not None:
+                                    self.tb_writer.add_scalar('gradient/f_i_norm', f_grad.norm().item(), iter)
+                                R_grad = self.net.planarSplat._plane_rot_q_normal_wxy.grad
+                                if R_grad is not None:
+                                    self.tb_writer.add_scalar('gradient/R_i_norm', R_grad.norm().item(), iter)
                     self._log_tb_text(iter=iter, text=status_line)
                 if iter % 10 == 0:
                     progress_bar.update(10)
