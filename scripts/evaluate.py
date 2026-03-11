@@ -98,11 +98,14 @@ def load_model_and_data(checkpoint_path):
     # Load checkpoint
     ckpt = torch.load(checkpoint_path, map_location='cpu')
     plane_num = ckpt['model_state_dict']['planarSplat._plane_center'].shape[0]
-    # Backward compatibility: add missing semantic features (Phase 2-B)
+    # Backward compatibility: add missing parameters for older checkpoints
     sem_key = 'planarSplat._plane_semantic_features'
     if sem_key not in ckpt['model_state_dict']:
         num_classes = net.planarSplat.semantic_num_classes
         ckpt['model_state_dict'][sem_key] = torch.zeros(plane_num, num_classes)
+    color_key = 'planarSplat._plane_colors_rgb'
+    if color_key not in ckpt['model_state_dict']:
+        ckpt['model_state_dict'][color_key] = torch.full((plane_num, 3), 0.5)
     net.planarSplat.initialize_as_zero(plane_num)
     net.build_optimizer_and_LRscheduler()
     net.reset_plane_vis()
@@ -188,7 +191,7 @@ def evaluate_checkpoint(checkpoint_path, metrics):
             # PSNR
             if 'psnr' in metrics:
                 gt_rgb = view_info.rgb  # (H*W, 3)
-                rendered_rgb_flat = rendered_rgb.permute(1, 2, 0).reshape(-1, 3)
+                rendered_rgb_flat = rendered_rgb[:3].permute(1, 2, 0).reshape(-1, 3)  # First 3 channels = RGB
                 psnr_val = compute_psnr(rendered_rgb_flat, gt_rgb)
                 psnr_list.append(psnr_val)
 
@@ -211,8 +214,9 @@ def evaluate_checkpoint(checkpoint_path, metrics):
 
             # Semantic mIoU
             if 'semantic_miou' in metrics and view_info.seg_map is not None:
-                # rendered_rgb is (4, H, W) = semantic features when enable_semantic
-                sem_pred = rendered_rgb.argmax(dim=0).reshape(-1)  # (H*W,)
+                # rendered_rgb is (C, H, W). Semantic logits are last 4 channels.
+                sem_logits = rendered_rgb[rendered_rgb.shape[0]-4:]  # (4, H, W)
+                sem_pred = sem_logits.argmax(dim=0).reshape(-1)  # (H*W,)
                 gt_seg = view_info.seg_map  # (H*W,)
                 # Only evaluate where GT has non-bg labels AND valid render
                 eval_mask = valid_mask & (gt_seg > 0)

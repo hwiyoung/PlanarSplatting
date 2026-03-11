@@ -45,6 +45,7 @@ class PlanarRecWrapper(nn.Module):
             {'params': [self.planarSplat._plane_rot_q_xyAxis_z], 'lr': plane_model_conf.lr_rot_xy, "name": "plane_rot_q_xyAxis_z", "weight_decay": 0.},
             {'params': [self.planarSplat._plane_rot_q_xyAxis_w], 'lr': plane_model_conf.lr_rot_xy, "name": "plane_rot_q_xyAxis_w", "weight_decay": 0.},
             {'params': [self.planarSplat._plane_semantic_features], 'lr': plane_model_conf.get_float('lr_semantic', default=0.005), "name": "plane_semantic_features", "weight_decay": 0.},
+            {'params': [self.planarSplat._plane_colors_rgb], 'lr': plane_model_conf.get_float('lr_color', default=0.005), "name": "plane_colors_rgb", "weight_decay": 0.},
         ]
         self.optimizer = torch.optim.Adam(opt_dict, betas=(0.9, 0.99), eps=1e-15)
         
@@ -100,6 +101,7 @@ class PlanarRecWrapper(nn.Module):
         self.planarSplat._plane_rot_q_xyAxis_z = opt_tensors['plane_rot_q_xyAxis_z']
         self.planarSplat._plane_rot_q_xyAxis_w = opt_tensors['plane_rot_q_xyAxis_w']
         self.planarSplat._plane_semantic_features = opt_tensors['plane_semantic_features']
+        self.planarSplat._plane_colors_rgb = opt_tensors['plane_colors_rgb']
 
         self.plane_vis_denom = self.plane_vis_denom[valid_plane_mask]
         self.radii_grad_denom = self.radii_grad_denom[valid_plane_mask]
@@ -153,11 +155,14 @@ class PlanarRecWrapper(nn.Module):
 
         return optimizable_tensors
     
-    def densification_postfix(self, new_plane_center, new_plane_radii_xy_p, new_plane_radii_xy_n, new_plane_rot_q_normal_wxy, new_plane_rot_q_xyAxis_w, new_plane_rot_q_xyAxis_z, new_rot_delta=[], new_plane_semantic_features=None):
+    def densification_postfix(self, new_plane_center, new_plane_radii_xy_p, new_plane_radii_xy_n, new_plane_rot_q_normal_wxy, new_plane_rot_q_xyAxis_w, new_plane_rot_q_xyAxis_z, new_rot_delta=[], new_plane_semantic_features=None, new_plane_colors_rgb=None):
         # Copy parent semantic features for new (split) primitives
         if new_plane_semantic_features is None:
             new_plane_semantic_features = torch.zeros(
                 new_plane_center.shape[0], self.planarSplat.semantic_num_classes, device='cuda')
+        if new_plane_colors_rgb is None:
+            new_plane_colors_rgb = torch.full(
+                (new_plane_center.shape[0], 3), 0.5, device='cuda')
         d = {"plane_center": new_plane_center,
             "plane_radii_xy_p": new_plane_radii_xy_p,
             "plane_radii_xy_n": new_plane_radii_xy_n,
@@ -165,6 +170,7 @@ class PlanarRecWrapper(nn.Module):
             "plane_rot_q_xyAxis_w" : new_plane_rot_q_xyAxis_w,
             "plane_rot_q_xyAxis_z" : new_plane_rot_q_xyAxis_z,
             "plane_semantic_features": new_plane_semantic_features,
+            "plane_colors_rgb": new_plane_colors_rgb,
             }
 
         optimizable_tensors = self.cat_tensors_to_optimizer(d)
@@ -176,6 +182,7 @@ class PlanarRecWrapper(nn.Module):
         self.planarSplat._plane_rot_q_xyAxis_w = optimizable_tensors["plane_rot_q_xyAxis_w"]
         self.planarSplat._plane_rot_q_xyAxis_z = optimizable_tensors["plane_rot_q_xyAxis_z"]
         self.planarSplat._plane_semantic_features = optimizable_tensors["plane_semantic_features"]
+        self.planarSplat._plane_colors_rgb = optimizable_tensors["plane_colors_rgb"]
 
         # reset all accum stats after densification
         self.reset_grad_stats()
@@ -208,17 +215,12 @@ class PlanarRecWrapper(nn.Module):
         if len(new_plane_center) > 0:
             if self.planarSplat.rot_delta is not None:
                 new_rot_delta = torch.cat(new_rot_delta, dim=0)
-            # Copy semantic features from parent to children
-            sem_feat = self.planarSplat._plane_semantic_features.data
-            new_sem_parts = []
-            if selected_mask_1.sum() > 0:
-                new_sem_parts.append(sem_feat[selected_mask_1].repeat(2, 1))
-            if selected_mask_2.sum() > 0:
-                new_sem_parts.append(sem_feat[selected_mask_2].repeat(2, 1))
-            if selected_mask_3.sum() > 0:
-                new_sem_parts.append(sem_feat[selected_mask_3].repeat(4, 1))
-            new_semantic_features = torch.cat(new_sem_parts, dim=0) if new_sem_parts else None
-            self.densification_postfix(new_plane_center, new_plane_radii_xy_p, new_plane_radii_xy_n, new_plane_rot_q_normal_wxy, new_plane_rot_q_xyAxis_w, new_plane_rot_q_xyAxis_z, new_rot_delta, new_semantic_features)
+            # Copy semantic features and colors from parent to children
+            new_semantic_features = self._replicate_param_for_split(
+                self.planarSplat._plane_semantic_features.data, selected_mask_1, selected_mask_2, selected_mask_3)
+            new_colors_rgb = self._replicate_param_for_split(
+                self.planarSplat._plane_colors_rgb.data, selected_mask_1, selected_mask_2, selected_mask_3)
+            self.densification_postfix(new_plane_center, new_plane_radii_xy_p, new_plane_radii_xy_n, new_plane_rot_q_normal_wxy, new_plane_rot_q_xyAxis_w, new_plane_rot_q_xyAxis_z, new_rot_delta, new_semantic_features, new_colors_rgb)
 
         self.planarSplat.check_model()
         self.reset_grad_stats()
@@ -227,6 +229,17 @@ class PlanarRecWrapper(nn.Module):
             prune_mask = torch.cat((selected_mask, torch.zeros(new_plane_center.shape[0], device="cuda", dtype=bool)))
             self.prune_core(prune_mask)
         torch.cuda.empty_cache()
+
+    def _replicate_param_for_split(self, param_data, mask_1, mask_2, mask_3):
+        """Replicate a per-primitive parameter for split children (2x for 1D split, 4x for 2D split)."""
+        parts = []
+        if mask_1.sum() > 0:
+            parts.append(param_data[mask_1].repeat(2, 1))
+        if mask_2.sum() > 0:
+            parts.append(param_data[mask_2].repeat(2, 1))
+        if mask_3.sum() > 0:
+            parts.append(param_data[mask_3].repeat(4, 1))
+        return torch.cat(parts, dim=0) if parts else None
 
     def split_all_plane(self,):
         self.regularize_plane_shape()
@@ -251,16 +264,11 @@ class PlanarRecWrapper(nn.Module):
         if len(new_plane_center) > 0:
             if self.planarSplat.rot_delta is not None:
                 new_rot_delta = torch.cat(new_rot_delta, dim=0)
-            sem_feat = self.planarSplat._plane_semantic_features.data
-            new_sem_parts = []
-            if selected_mask_1.sum() > 0:
-                new_sem_parts.append(sem_feat[selected_mask_1].repeat(2, 1))
-            if selected_mask_2.sum() > 0:
-                new_sem_parts.append(sem_feat[selected_mask_2].repeat(2, 1))
-            if selected_mask_3.sum() > 0:
-                new_sem_parts.append(sem_feat[selected_mask_3].repeat(4, 1))
-            new_semantic_features = torch.cat(new_sem_parts, dim=0) if new_sem_parts else None
-            self.densification_postfix(new_plane_center, new_plane_radii_xy_p, new_plane_radii_xy_n, new_plane_rot_q_normal_wxy, new_plane_rot_q_xyAxis_w, new_plane_rot_q_xyAxis_z, new_rot_delta, new_semantic_features)
+            new_semantic_features = self._replicate_param_for_split(
+                self.planarSplat._plane_semantic_features.data, selected_mask_1, selected_mask_2, selected_mask_3)
+            new_colors_rgb = self._replicate_param_for_split(
+                self.planarSplat._plane_colors_rgb.data, selected_mask_1, selected_mask_2, selected_mask_3)
+            self.densification_postfix(new_plane_center, new_plane_radii_xy_p, new_plane_radii_xy_n, new_plane_rot_q_normal_wxy, new_plane_rot_q_xyAxis_w, new_plane_rot_q_xyAxis_z, new_rot_delta, new_semantic_features, new_colors_rgb)
 
         self.planarSplat.check_model()
         self.reset_grad_stats()
@@ -294,16 +302,11 @@ class PlanarRecWrapper(nn.Module):
         if len(new_plane_center) > 0:
             if self.planarSplat.rot_delta is not None:
                 new_rot_delta = torch.cat(new_rot_delta, dim=0)
-            sem_feat = self.planarSplat._plane_semantic_features.data
-            new_sem_parts = []
-            if selected_mask_1.sum() > 0:
-                new_sem_parts.append(sem_feat[selected_mask_1].repeat(2, 1))
-            if selected_mask_2.sum() > 0:
-                new_sem_parts.append(sem_feat[selected_mask_2].repeat(2, 1))
-            if selected_mask_3.sum() > 0:
-                new_sem_parts.append(sem_feat[selected_mask_3].repeat(4, 1))
-            new_semantic_features = torch.cat(new_sem_parts, dim=0) if new_sem_parts else None
-            self.densification_postfix(new_plane_center, new_plane_radii_xy_p, new_plane_radii_xy_n, new_plane_rot_q_normal_wxy, new_plane_rot_q_xyAxis_w, new_plane_rot_q_xyAxis_z, new_rot_delta, new_semantic_features)
+            new_semantic_features = self._replicate_param_for_split(
+                self.planarSplat._plane_semantic_features.data, selected_mask_1, selected_mask_2, selected_mask_3)
+            new_colors_rgb = self._replicate_param_for_split(
+                self.planarSplat._plane_colors_rgb.data, selected_mask_1, selected_mask_2, selected_mask_3)
+            self.densification_postfix(new_plane_center, new_plane_radii_xy_p, new_plane_radii_xy_n, new_plane_rot_q_normal_wxy, new_plane_rot_q_xyAxis_w, new_plane_rot_q_xyAxis_z, new_rot_delta, new_semantic_features, new_colors_rgb)
 
         self.planarSplat.check_model()
         self.reset_grad_stats()

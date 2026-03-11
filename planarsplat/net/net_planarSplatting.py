@@ -17,7 +17,7 @@ class PlanarSplat_Network(nn.Module):
         super().__init__()
         # ==================================
         self.rot_delta = None
-        self.bg = torch.tensor([0., 0., 0., 0.]).cuda()
+        self.bg = torch.zeros(7).cuda()  # 3 RGB + 4 semantic
         # ================================== get config ======================
         self.plane_cfg = cfg.get_config('plane_model')
         self.pose_cfg = cfg.get_config('pose')
@@ -49,6 +49,8 @@ class PlanarSplat_Network(nn.Module):
         # semantic setting (Phase 2-B)
         self.enable_semantic = self.plane_cfg.get_bool('enable_semantic', default=False)
         self.semantic_num_classes = self.plane_cfg.get_int('semantic_num_classes', default=4)
+        # photo setting (Phase 3-B')
+        self.enable_photo = self.plane_cfg.get_bool('enable_photo', default=False)
 
         # ================================== define plane parameters ======================
         # fixed plane parameters
@@ -68,6 +70,8 @@ class PlanarSplat_Network(nn.Module):
         self._plane_rot_q_xyAxis_z = torch.empty(0)
         # semantic feature (Phase 2-B)
         self._plane_semantic_features = torch.empty(0)
+        # learnable RGB color (Phase 3-B')
+        self._plane_colors_rgb = torch.empty(0)
 
     @property
     def get_plane_center(self):
@@ -106,6 +110,15 @@ class PlanarSplat_Network(nn.Module):
             self._plane_semantic_features = nn.Parameter(
                 torch.zeros(plane_num, self.semantic_num_classes).cuda(), requires_grad=False)
 
+    def _init_colors_rgb(self, plane_num):
+        """Initialize RGB colors (gray 0.5 default, learnable when enable_photo)."""
+        if self.enable_photo:
+            self._plane_colors_rgb = nn.Parameter(
+                torch.full((plane_num, 3), 0.5, device='cuda'), requires_grad=True)
+        else:
+            self._plane_colors_rgb = nn.Parameter(
+                torch.full((plane_num, 3), 0.5, device='cuda'), requires_grad=False)
+
     def initialize_from_sphere(self):
         logger.info("Initializing planes from sphere...")
         self.initialized = True
@@ -122,6 +135,7 @@ class PlanarSplat_Network(nn.Module):
         self._plane_rot_q_xyAxis_w = nn.Parameter(init_rot_q_xyAxis[:, 0:1].cuda(), requires_grad=True)
         self._plane_rot_q_xyAxis_z = nn.Parameter(init_rot_q_xyAxis[:, 3:4].cuda(), requires_grad=True)
         self._init_semantic_features(plane_num)
+        self._init_colors_rgb(plane_num)
 
         # =========================  plane visualization  ======================
         self.draw_plane(epoch=-1, suffix='initial-sphere')
@@ -147,6 +161,7 @@ class PlanarSplat_Network(nn.Module):
         self._plane_rot_q_xyAxis_w = nn.Parameter(init_rot_q_xyAxis[:, 0:1].cuda(), requires_grad=True)
         self._plane_rot_q_xyAxis_z = nn.Parameter(init_rot_q_xyAxis[:, 3:4].cuda(), requires_grad=True)
         self._init_semantic_features(plane_num)
+        self._init_colors_rgb(plane_num)
 
     def initialize_from_mesh(self, mesh_path):
         self.initialized = True
@@ -193,6 +208,7 @@ class PlanarSplat_Network(nn.Module):
         self._plane_rot_q_xyAxis_w = nn.Parameter(init_rot_q_xyAxis_new[:, 0:1].cuda(), requires_grad=True)
         self._plane_rot_q_xyAxis_z = nn.Parameter(init_rot_q_xyAxis_new[:, 3:4].cuda(), requires_grad=True)
         self._init_semantic_features(plane_num)
+        self._init_colors_rgb(plane_num)
 
          # =========================  plane visualization  ======================
         self.draw_plane(epoch=-1, suffix='initial-mesh')
@@ -207,6 +223,7 @@ class PlanarSplat_Network(nn.Module):
         self._plane_rot_q_xyAxis_w = nn.Parameter(torch.zeros(plane_num, 1).cuda().requires_grad_(True))
         self._plane_rot_q_xyAxis_z = nn.Parameter(torch.zeros(plane_num, 1).cuda().requires_grad_(True))
         self._init_semantic_features(plane_num)
+        self._init_colors_rgb(plane_num)
 
     def check_model(self):
         assert self.get_plane_center.shape[0] == self.get_plane_radii_xy_p.shape[0]
@@ -407,11 +424,17 @@ class PlanarSplat_Network(nn.Module):
 
         # ======================================= plane model forward
         rasterizer = RectRasterizer(raster_settings=raster_settings)
-        # Semantic rendering (Phase 2-B): pass f_i or random (N,4) as colors_precomp
-        if self.enable_semantic:
-            colors_precomp = self._plane_semantic_features  # (N, 4) learnable
+        # Build 7-channel colors_precomp: [RGB(3) | Semantic(4)]
+        N = plane_center.shape[0]
+        if self.enable_photo:
+            rgb_part = torch.sigmoid(self._plane_colors_rgb)  # (N, 3) → [0,1]
         else:
-            colors_precomp = torch.rand(plane_center.shape[0], 4, device='cuda')
+            rgb_part = torch.rand(N, 3, device='cuda')
+        if self.enable_semantic:
+            sem_part = self._plane_semantic_features  # (N, 4) raw logits
+        else:
+            sem_part = torch.zeros(N, 4, device='cuda')
+        colors_precomp = torch.cat([rgb_part, sem_part], dim=-1)  # (N, 7)
         rgb, _, allmap = rasterizer(
                     means3D = plane_center,
                     means2D = screenspace_points,

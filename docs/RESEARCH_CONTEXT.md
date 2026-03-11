@@ -1,359 +1,191 @@
 # 연구 배경 및 설계
 
 ## 문제 정의
-항공 드론 이미지에서 3D Gaussian Splatting 기반으로 건물을 재구축할 때, 기하학적 재구축과 의미론적 분류를 동시에 수행하되, 두 과제가 서로를 개선하는 양방향 상호 보강을 실현한다. 최종 출력은 CityGML LOD2 형식의 건물별 구조화된 3D 모델이며, 이를 통해 건물 에너지 시뮬레이션, 태양광 잠재량 분석 등 도시 스케일 응용에 직접 활용 가능한 데이터를 생성한다.
+항공 드론 이미지에서 3D Gaussian Splatting 기반 평면 프리미티브를 학습하여, 건물 구성요소 의미론(roof/wall/ground)이 통합된 3D 표현을 구축하고, 이를 CityGML LOD2 형식의 건물 모델로 변환한다. 최종 출력은 val3dity를 통과하는 CityGML LOD2 모델이며, 건물 에너지 시뮬레이션, 태양광 잠재량 분석 등 도시 스케일 응용에 활용 가능한 데이터를 생성한다.
+
+### 연구 방향 조정 (2026-03-11, 지도교수 피드백)
+- L_mutual은 연구의 유일한 핵심 기여가 아님. 전체 파이프라인(항공 이미지 → semantic planar primitive → CityGML LOD2)에서의 한 구성요소.
+- L_photo를 기본 설정에 포함. Phase 4(CityGML 변환 + mesh 기반 위상 보정)를 최우선으로 진행.
+- 기여의 정확한 경계는 실험 결과(Phase 3-B', Phase 4, City3D 비교) 후 확정.
+- 상세: docs/ADVISOR_FEEDBACK_RESPONSE.md
 
 ## 기존 연구의 한계
-1. 3DGS 기반 건물 재구축(ULSR-GS, AGS 등): 기하학적 표면만 출력, 의미론 없음
-2. 이미지 기반 LOD2(PLANES4LOD2 등): CNN→후처리 분리, end-to-end 아님
-3. GS4Buildings: 단방향 (외부 LOD2→GS), 양방향 아님
-4. Multi-task learning(PCGrad, CAGrad): gradient 충돌 해결에 집중, 과제 간 구조적 연계 미활용
+1. 3DGS 기반 건물 재구축(ULSR-GS, AGS 등): 기하학적 표면만 출력, 의미론 없음, CityGML 미연결
+2. 이미지 기반 LOD2(PLANES4LOD2 등): CNN→후처리 분리, 3D 표현에 의미론 미통합
+3. 기하학적 구조적 재구축(City3D, PolyFit): 순차적 파이프라인의 오차 누적, 사후적 의미론 부여
+4. GS4Buildings: 단방향 (외부 LOD2→GS), GS→CityGML 아님
+5. Gaussian Splatting 전반: 위상적 불완전성(구멍, 틈, 비밀폐)이 CityGML val3dity의 최대 장벽
+
+## 기여 방향 (실험 결과에 따라 확정)
+- **방향 A**: 평면 프리미티브 + 의미론 통합이 CityGML LOD2 생성에 왜 적합한지 실증 (City3D 비교)
+- **방향 B**: 의미론-기하학 동시 최적화를 통한 상호보완 (L_mutual의 효과에 의존)
+- **방향 C**: TSDF mesh의 watertight 특성으로 splatting의 토폴로지 보정 (기존 연구에 없음)
 
 ---
 
 ## 프리미티브 파라미터 전체 구조
 
-### PlanarSplatting 원래 파라미터 (Θ_geo) — Phase 0-Setup에서 코드 확인 완료
+### PlanarSplatting 원래 파라미터 (Θ_geo)
 
-PlanarSplatting은 L_photo 없이 기하학적 손실(L_depth, L_normal)만으로 최적화한다. **color는 매 forward에서 random 생성, opacity는 고정값 1.0**으로, 둘 다 학습 파라미터가 아니다. SH 계수도 없다.
-
-회전은 **분해 쿼터니언 시스템**: `q_final = normalize(q_normal × q_xyAxis)` 로, 법선 방향 회전(azimuth)과 면내 회전(twist)을 분리하여 관리한다.
+회전은 분해 쿼터니언: `q_final = normalize(q_normal × q_xyAxis)`
 
 | 파라미터 | 변수명 | 차원 | 의미 | Learnable | lr | 관련 손실 |
 |----------|--------|------|------|-----------|-----|-----------|
 | c_i | `_plane_center` | (N, 3) | 중심 위치 | ✓ | 0.001 | L_depth |
-| r_i+ | `_plane_radii_xy_p` | (N, 2) | +방향 반경 (x+, y+) | ✓ | 0.001 | L_depth (간접) |
-| r_i- | `_plane_radii_xy_n` | (N, 2) | -방향 반경 (x-, y-) | ✓ | 0.001 | L_depth (간접) |
-| q_n(w,x,y) | `_plane_rot_q_normal_wxy` | (N, 3) | 법선 회전 quat (w,x,y) | ✓ | 0.001 | L_normal, **L_mutual** |
-| q_xy(w) | `_plane_rot_q_xyAxis_w` | (N, 1) | 면내 회전 quat w | ✓ | 0.001 | L_normal (간접) |
-| q_xy(z) | `_plane_rot_q_xyAxis_z` | (N, 1) | 면내 회전 quat z | ✓ | 0.001 | L_normal (간접) |
-| color | `torch.rand_like(center)` | (N, 3) | 렌더링 색상 | ✗ (random) | — | 없음 |
-| opacity | `torch.ones(N, 1)` | (N, 1) | 불투명도 | ✗ (고정=1) | — | 없음 |
+| r_i+ | `_plane_radii_xy_p` | (N, 2) | +방향 반경 | ✓ | 0.001 | L_depth (간접) |
+| r_i- | `_plane_radii_xy_n` | (N, 2) | -방향 반경 | ✓ | 0.001 | L_depth (간접) |
+| q_n(w,x,y) | `_plane_rot_q_normal_wxy` | (N, 3) | 법선 회전 quat | ✓ | 0.001 | L_normal, L_mutual |
+| q_xy(w) | `_plane_rot_q_xyAxis_w` | (N, 1) | 면내 회전 w | ✓ | 0.001 | L_normal (간접) |
+| q_xy(z) | `_plane_rot_q_xyAxis_z` | (N, 1) | 면내 회전 z | ✓ | 0.001 | L_normal (간접) |
 
-**쿼터니언 재구성 과정:**
-- `q_normal = normalize([q_n_wxy, 0])` — z=0 고정 (3 DoF → 법선 방향)
-- `q_xyAxis = normalize([q_xy_w, 0, 0, q_xy_z])` — x,y=0 고정 (2 DoF → 면내 twist)
-- `q_final = normalize(q_normal × q_xyAxis)` → rotation matrix → **법선 n_i 유도**
-
-**L_mutual이 작동하는 지점:** `q_n(w,x,y)` 가 법선 n_i를 결정하므로, L_mutual의 ∂L/∂R_i gradient는 주로 이 3개 파라미터를 통해 흐른다.
-
-**Density control 시 동기 처리 필요:**
-`net_wrapper.py`의 `prune_core()`, `densification_postfix()`, `split_planes_via_radii_grad()` 에서 7개 파라미터(6 geo + f_i) + optimizer state를 모두 동기 처리한다. (**Phase 2-B에서 구현 완료.**)
-
-### 본 연구에서 추가하는 파라미터 (Θ_sem) — Phase 2-B 구현 완료
+### 본 연구에서 추가하는 파라미터
 
 | 파라미터 | 변수명 | 차원 | 의미 | lr | 관련 손실 |
-|----------|--------|------|------|----|-----------|
-| **f_i** | `_plane_semantic_features` | **(N, 4)** | **의미론적 특징 (bg/roof/wall/ground)** | **0.005** | **L_sem, L_mutual** |
+|----------|--------|------|------|-----|-----------|
+| f_i | `_plane_semantic_features` | (N, 4) | 의미론적 특징 (bg/roof/wall/ground) | 0.005 | L_sem, L_mutual |
+| color_i | (추가 예정, Phase 3-B') | (N, 3) | RGB 색상 | TBD | L_photo |
 
-### 파라미터-손실 매핑 (기본 설계: L_photo 미포함)
+### 파라미터-손실 매핑 (L_photo 포함 설계)
 
 ```
 L_depth  ──→ c_i, r_i, R_i      (깊이 정확도)
 L_normal ──→ R_i                  (법선 정확도)
-L_geo    ──→ c_i, r_i, R_i      (기하 정규화: L_nc + L_planar + L_adj)
+L_geo    ──→ R_i                  (법선 일관성, 현재 L_nc만 활성)
 L_sem    ──→ f_i                  (의미론 분류)
-L_mutual ──→ R_i + f_i           (★ 이 둘만 연결)
+L_photo  ──→ color_i, c_i, R_i, r_i  (RGB 정합, 추가 예정)
+L_mutual ──→ R_i + f_i           (기하-의미론 연결)
 ```
 
-### L_mutual이 연결하는 것과 연결하지 않는 것
-- **연결하는 것:** R_i(→법선 n_i)와 f_i(→클래스 확률 p_c). 이 두 파라미터만.
-- **연결하지 않는 것:** c_i(위치), r_i(크기), 기타. 이들은 L_mutual과 무관.
-- "양방향"이란: L_mutual의 gradient가 R_i 방향과 f_i 방향 둘 다로 흐른다는 뜻.
+---
+
+## Ground Class와 CityGML GroundSurface
+
+**중요 구분**:
+- 연구의 "ground" (K=4의 3번째 class) = 이미지에 보이는 실제 지면(terrain: 도로, 보도, 주차장). 항공 이미지에서 관측 가능.
+- CityGML bldg:GroundSurface = 건물의 하부 폐합면(건물 풋프린트). 항공 이미지에서 관측 불가(건물이 위에 있으므로).
+
+**Ground class의 목적**: 건물 프리미티브(roof/wall)를 더 정확하게 식별하기 위한 배경(context) class. "이것은 지면이지 건물이 아니다"를 학습. CityGML 변환 시 ground 프리미티브는 필터링되며 건물 모델에 포함되지 않음.
+
+**CityGML GroundSurface 생성**: roof 경계를 ground 프리미티브의 평균 높이(z좌표)로 투영하여 별도 생성.
 
 ---
 
 ## L_sem (의미론적 분류 손실)
 
-CrossEntropyLoss(ignore_index=0)로, 렌더링된 의미론적 맵을 Grounded SAM 2 생성 GT와 비교.
-- 3D 프리미티브에 직접 f_i를 부여하므로, **여러 뷰에서 번갈아 L_sem을 최적화하면 멀티뷰 의미론적 일관성이 구조적으로 보장**된다.
-- 2D segmentation 오류가 있더라도 동일 프리미티브가 여러 뷰에서 L_sem을 받으므로 **다수결에 의해 오류 희석**.
-- L_mutual의 기하학-의미론 교차 검증이 추가적인 보정 역할.
+CrossEntropyLoss(ignore_index=0). 렌더링된 의미론적 맵 vs Grounded SAM 2 GT.
+- 3D 프리미티브에 직접 f_i 부여 → 멀티뷰 의미론적 일관성이 구조적으로 보장
+- 2D segmentation 오류는 다수결에 의해 희석
+- GT coverage: Roof 5.9%, Wall 23.4%, Ground 19.5% (전체 48.8%), 나머지 51.2%는 BG(ignore)
 
 ---
 
-## L_photo 포함 여부: 실험으로 확인할 사항
+## L_photo (RGB photometric loss) — Phase 3-B'에서 구현 예정
 
-### PlanarSplatting의 설계
-PlanarSplatting은 L_photo 없이 MVS depth/normal 기반 기하학적 손실만으로 최적화한다.
+### 설계 변경 (2026-03-11)
+기존: L_photo 미포함 (L_mutual ablation을 위한 실험적 편의).
+변경: **L_photo를 기본 설정에 포함**. PGSR, 2DGS 등 기하학적으로 우수한 GS 연구들이 모두 L_photo를 사용. 특히 MVS 깊이가 희소한 벽면에서 텍스처 매칭이 기하학 보완 가능.
 
-### 기본 설계: L_photo 미포함 (이론적 근거)
-1. **핵심 기여와 독립:** L_mutual은 R_i와 f_i만 연결. color/L_photo와 무관하므로, 없어도 핵심 메커니즘 성립.
-2. **Ablation 명확성:** L_photo 추가 시 R_i에 대한 gradient source가 증가 (L_depth, L_normal, L_geo, L_mutual에 더해 L_photo). L_mutual의 고유 효과가 희석되어 "법선 개선이 L_mutual 덕인지 L_photo 덕인지" 분리 어려움.
-3. **설계 일관성:** PlanarSplatting이 L_photo 없이 기하 재구축을 달성하므로 추가 필요성 없음.
+### 구현 사항 (Phase 3-B'-Step1에서 확인)
+- PlanarSplatting 원본: color=random(비학습), SH 없음
+- color를 학습 파라미터(N,3)로 추가, SfM 포인트 색상으로 초기화
+- L_photo = (1-λ_ssim)*L1 + λ_ssim*(1-SSIM), λ_ssim=0.2
+- semantic 렌더링(4ch)과 RGB 렌더링(3ch) 동시 수행 방안 검토 필요
+- density control에서 color 동기 처리
 
-### 추가 실험: L_photo 포함 시 효과 (Phase 3-B 이후)
-L_photo 추가가 전체 품질을 높일 가능성은 있으므로, core ablation 완료 후 확인:
-- color를 학습 파라미터로 추가하고 L_photo를 포함한 실험
-- L_photo 유무에 따른 기하 지표 변화
-- L_photo 유무에 따른 L_mutual ablation 효과 변화
-- 수렴 안정성 비교
+### 기존 Phase 3-B 결과의 위상
+L_photo 미포함 상태의 7개 ablation은 "예비 분석"으로 재위치. L_photo 포함 시 그대로 유효하다고 가정할 수 없음. 경로 1/2 진단의 논리적 구조는 Phase 3-B' 설계 근거로 유지.
 
 ---
 
 ## L_geo (기하 정규화)
 
-프리미티브가 "건물다운" 기하학적 조건을 만족하도록 강제하는 정규화 항. 세 가지 하위항으로 구성된다.
-
-**L_depth vs L_geo 역할 구분:**
-- **L_depth**: 절대적 위치 정확도. 외부 GT(MVS depth)와 비교하여 c_i를 올바른 3D 위치로 직접 supervision. "이 표면이 3D 공간의 어느 위치에 있어야 하는가."
-- **L_geo**: 내부 일관성. 외부 GT 없이, 기하학적 구조가 자기 모순 없는지 검사. "depth와 normal이 서로 모순되지 않는가, 각 표면이 실제로 평면인가, 인접 표면이 경계에서 맞닿는가."
-  - L_nc: depth와 normal이 같은 표면 방향을 가리키는지
-  - L_planar: 프리미티브에 속한 3D 점들이 실제로 평면 위에 있는지
-  - L_adj: 인접 프리미티브가 경계에서 맞는지 (CityGML 닫힌 다면체 요건)
-
 ```
 L_geo = λ_p · L_planar + λ_a · L_adj + λ_nc · L_normal_consistency
 ```
 
-### L_normal_consistency (법선 일관성)
-렌더링된 법선 맵이 깊이 맵으로부터 유도된 법선과 일치해야 한다는 제약. 깊이와 법선이 독립적으로 업데이트될 때 발생하는 모순을 방지. 2DGS, PGSR 등에서 검증된 기법.
-```
-L_nc = Σ_p [ 1 - n_render(p) · n_depth_derived(p) ]
-```
-- n_render: allmap[2:5] (rasterizer 출력)
-- n_depth_derived: allmap[0] (depth)에서 finite difference로 유도
-- **구현**: PyTorch 레벨, CUDA 수정 불필요 → Phase 2-B에서 구현
+현재 실험: **L_normal_consistency만 활성화**. L_planar, L_adj는 설계 완료, 구현 미사용. 미구현 사유는 코드 수준에서 확인 필요.
 
-### L_planar (평면성 제약)
-하나의 프리미티브에 속하는 모든 3D 점들이 실제로 하나의 평면 위에 놓여야 한다는 제약.
-```
-L_planar = Σ_i [ (1/|S_i|) · Σ_{x_j ∈ S_i} (n_i · x_j + d_i)² ]
-```
-- n_i · x_j + d_i: 점 x_j에서 프리미티브 i 평면까지의 부호 거리
-- 렌더링된 깊이 맵에서 역투영한 3D 점이 해당 프리미티브의 평면 방정식과 일치하는지 검증
-- **의존성**: 픽셀별 프리미티브 ID 필요 → CUDA rasterizer에 primitive ID 채널 추가 필요
-- **구현**: Phase 4에서 CUDA 수정 시 함께 구현
-
-### L_adj (인접 정합성)
-인접한 두 프리미티브가 만나는 경계에서 틈(gap)이나 격침(overlap)이 없어야 한다는 제약. CityGML은 건물이 닫힌 다면체를 형성하도록 요구.
-```
-L_adj = Σ_{(i,j) ∈ Neighbors} [ (1/|B_ij|) · Σ_{x_k ∈ B_ij} ( |n_i·x_k+d_i| + |n_j·x_k+d_j| )² ]
-```
-- B_ij: 프리미티브 i와 j의 경계 영역 점 집합
-- 인접성은 렌더링된 2D 맵에서 프리미티브 ID의 경계로 판단
-- **의존성**: L_planar와 동일 (픽셀별 프리미티브 ID 필요)
-- **구현**: Phase 4에서 CUDA 수정 시 함께 구현
-
-### 구현 단계 요약
-| 하위항 | Phase | CUDA 수정 | 비고 |
-|--------|-------|-----------|------|
-| L_normal_consistency | 2-B | 불필요 | allmap[0]과 allmap[2:5]에서 계산 |
-| L_planar | 4 | 필요 (primitive ID 채널) | val3dity 검증과 직결 |
-| L_adj | 4 | 필요 (primitive ID 채널) | CityGML 닫힌 다면체 요구 |
-
-※ allmap[6](distortion)은 별도의 floater 방지 정규화로, L_geo의 하위항은 아니지만 추가 사용 가능.
-※ `regularize_plane_shape()`은 반경 대칭화 hard constraint로, L_geo와 역할이 다름.
+| 하위항 | 상태 | 비고 |
+|--------|------|------|
+| L_normal_consistency | 활성 (Phase 2-B) | depth-derived normal vs rendered normal |
+| L_planar | 미사용 | 향후 Phase 4에서 검토 |
+| L_adj | 미사용 | 향후 Phase 4에서 검토 |
 
 ---
 
 ## L_mutual 수식 및 Gradient 분석
 
-### 수식
+### 수식 (3항, Phase 3-B에서 사용)
 ```
-L_mutual = Σ_i [ p_wall(i) · L_vert(n_i) + p_roof(i) · L_slope(n_i) + p_ground(i) · L_horiz(n_i) ]
+L_mutual = Σ_i [ p_wall(i)·L_vert(n_i) + p_roof(i)·L_slope(n_i) + p_ground(i)·L_horiz(n_i) ]
 ```
-- p_c(i) = softmax(f_i)[c] : 프리미티브 i의 클래스 c 확률
-- n_i : R_i에서 유도된 법선 벡터
-- e_z = 중력 방향 단위벡터 (COLMAP world frame에서 gravity ≈ -Y → e_z ≈ [0, -1, 0]. **[0,0,1]이 아님!**)
-  - **표기 주의**: e_z는 "중력 방향(up) 단위벡터"의 관례적 표기. COLMAP 좌표계에서는 Y축이 gravity이므로 실제 구현에서 `e_gravity = torch.tensor([0, -1, 0])` 사용. 변수명 혼동 방지를 위해 코드에서는 `e_up` 또는 `e_gravity`를 권장.
-  - **수치 검증**: camera -Y axis 평균 `[+0.022, -0.998, +0.055]` (100장 평균). [0,-1,0]으로 근사 타당.
-  - **논문 표기 권장**: `e_g` (gravity direction). "e_z"는 COLMAP [0,-1,0]과 수학 관례 [0,0,1]의 혼동 유발.
-- L_vert(n) = (n · e_z)² : 법선이 수평이면 0 → 벽면에 적합 (벽 법선은 수평이어야)
-- L_horiz(n) = (1 - |n · e_z|)² : 법선이 수직이면 0 → 지면에 적합 (지면 법선은 수직이어야)
-- L_slope(n) = relu(τ − (n · e_z)²)² : **단측 wall exclusion**. τ=0.15.
-  - roof로 분류된 프리미티브의 법선이 지나치게 수평(wall-like)이면 penalty
-  - flat roof (수직 법선, (n·e_z)²≈1)에는 penalty 없음 → flat roof와 ground의 법선이 동일한 경우에도 L_mutual이 무해하게 퇴화
-  - flat roof vs ground 구분은 L_sem이 담당 (2D GT + multi-view consistency)
+- e_gravity = [0,-1,0] (COLMAP frame)
+- L_vert(n) = (n·e_g)² : 벽 법선 → 수평
+- L_horiz(n) = (1-|n·e_g|)² : 지면 법선 → 수직
+- L_slope(n) = relu(τ-(n·e_g)²)², τ=0.15 : roof가 벽처럼 수평이면 penalty
 
-### L_mutual은 렌더링과 독립
-L_mutual은 **per-primitive softmax(f_i)**와 **per-primitive n_i**를 직접 사용하여 계산된다. rasterizer를 통한 렌더링(alpha-blending)은 거치지 않으므로, 렌더링 순서나 occlusion에 무관하다. 반면 L_sem은 colors_precomp에 raw f_i를 전달하여 rasterizer가 alpha-blend한 결과에 softmax → CrossEntropyLoss를 적용한다. 즉 L_sem만 렌더링 경로를 사용하고, L_mutual은 프리미티브 레벨에서 직접 작동한다.
-
-따라서 특정 view에서 가려진(occluded) 프리미티브도 L_mutual의 gradient를 받는다. 이는 렌더링 기반인 L_sem이 도달하지 못하는 프리미티브에 대해서도 L_mutual이 기하-의미론 교차 보강을 수행할 수 있음을 의미한다 — L_sem이 커버하지 못하는 사각지대를 L_mutual이 보완하는 구조.
-
-### Gradient 방향 1: ∂L_mutual/∂R_i (의미론 → 기하)
-"wall 확률이 높은 프리미티브의 법선을 수평으로 밀어라"
-- p_wall이 크면 L_vert(n_i)의 가중치가 커지고, R_i를 수정하여 n_i를 수평으로 회전시키는 gradient 발생
-- 의미론적 분류(p_wall)가 기하학적 법선(n_i)을 교정하는 메커니즘
-
-### Gradient 방향 2: ∂L_mutual/∂f_i (기하 → 의미론)
-"법선이 수평인 프리미티브를 wall로 분류하라"
-- n_i가 이미 수평이면 L_vert(n_i)≈0, L_horiz(n_i)≈1
-- p_wall을 키우면 L_mutual이 줄어드는 방향 → f_i를 wall 쪽으로 밀어주는 gradient 발생
-- 이것이 기하학적 법선(n_i)이 의미론적 분류(f_i)를 보조하는 메커니즘
-
-### 전체 손실 (기본 설계)
+### 4항 (L_height, 실험 미수행)
 ```
-L_total = λ_d·L_depth + λ_n·L_normal + λ_g·L_geo + λ_s·L_sem + λ_m·L_mutual
+L_height = p_ground(i)·relu(h_i-h_high)² + p_roof(i)·relu(h_low-h_i)²
 ```
-※ L_geo는 Phase 2-B에서 L_normal_consistency만 포함. L_planar, L_adj는 Phase 4(CUDA 수정 후) 추가.
-※ L_photo는 기본 설계에서 미포함. "L_photo 포함 여부" 섹션 참조.
+L_height는 Phase 3-B' 결과에 따라 추가 여부 결정.
+
+### L_mutual의 위치 (연구 방향 조정 후)
+L_mutual은 전체 파이프라인의 한 구성요소. "의미론-기하학 상호보완"(방향 B)의 구체적 메커니즘이며, 효과는 L_photo 포함 조건에서 재검증. 효과가 확인되면 기여, 제한적이면 "작동 조건 분석" 수준의 기여로 조정.
+
+### Gradient 방향
+- ∂L/∂R_i (의미론→기하): p_wall이 크면 n_i를 수평으로 교정
+- ∂L/∂f_i (기하→의미론): n_i가 수평이면 f_i를 wall로 교정
+- L_sem만으로는 gradient 격리(f_i only)에 의해 의미론→기하 피드백 불가. L_mutual이 있어야 R_i에도 gradient.
 
 ---
 
-## Warmup 전략 (Curriculum Learning)
+## Warmup 전략
 
-학습 초기에 기하학과 의미론 모두 수렴하지 않은 상태에서 L_mutual을 활성화하면, 부정확한 의미론이 기하학을 오염시킬 수 있다. 시간적 분리로 이를 방지:
-
-- **초기 (0 ~ N/3):** λ_m = 0. L_depth + L_normal + L_geo로 기하 안정화, L_sem으로 의미론 대략 학습.
-- **중기 (N/3 ~ 2N/3):** λ_m를 0에서 목표값까지 점진적 증가. 상호 보강 시작.
-- **후기 (2N/3 ~ N):** λ_m 목표값 유지. 상호 보강 완전 작동.
-
-PCGrad/CAGrad 같은 gradient surgery 대신 시간 축 분리로 충돌 회피. 구현이 단순하면서 adaptive density control(split/prune)과 호환.
-
-## Trivial Solution 방지
-- 위험: L_mutual 최소화를 위해 p_wall을 줄이는 것이 n_i를 고치는 것보다 쉬움 (semantic evasion)
-- 방어: L_sem이 독립적으로 2D GT와의 일치를 강제 → p_wall이 부적절하게 줄면 L_sem이 복원
-- 추가: entropy regularization, class-balanced weighting (필요 시)
-
-### 클래스 불균형 (seg_maps 실측 — v10 confident-labels-only)
-현재 seg_maps coverage (180장 평균): Roof 5.9%, Wall 23.4%, Ground 19.5%, Background 51.2%.
-- Background(=ignore) 비율이 높아 유효 라벨 밀도가 낮음 (48.8% coverage)
-- Background에는 두 종류가 포함: (1) SAM 미검출 영역, (2) ambiguous normal(0.3<|dot|≤0.85) 픽셀
-  - Ambiguous → background는 의도적 설계: multi-view consistency trap 방지, L_mutual에 위임
-- Roof가 특히 적음 (전체의 5.9%, 유효 라벨 중 ~12%)
-  - 원인: oblique view에서 roof 노출 제한 + strong threshold(0.85)
-  - Roof 부족은 L_mutual이 기하→의미론 방향으로 보완하도록 설계됨
-- **Phase 2-C에서 class-balanced weighting** (inverse frequency 또는 focal loss) 검토 필요
-- 근본 원인: MVS normal 부재 이미지(80/180)는 text-only fallback (roof/wall 구분 불가)
-
-### Oblique View 한계와 대응 전략
-
-**한계:** Oblique view(pitch≈-49°)에서 roof가 적게 보이는 것은 촬영 조건의 본질적 한계.
-- Roof 2D label이 부족 → L_sem의 roof supervision 약함
-- 퇴화 MVS normal이 모든 view에서 발생 → multi-view consistency로도 교정 한계
-- Wall은 "seg label 정확(ambiguous→wall) + L_mutual 교정" 경로가 살아있으나, Roof는 두 경로 모두 약함
-
-**학습 단계 대응 (Phase 2-C~3):**
-1. Class-balanced weighting (inverse frequency): Roof의 적은 label에 높은 가중치
-2. L_mutual의 기하→의미론 방향: 수평 법선을 가진 primitive를 roof로 분류하도록 유도
-3. L_geo (L_normal_consistency): depth 유도 normal로 퇴화 MVS normal을 간접 교정
-
-**Seg map 개선 대안 (Phase 2-C에서 mIoU 미달 시):**
-1. Text-only 80장에 multi-prompt voting (roof/wall 별도 검출 후 score 합산)
-2. Pitch-adaptive threshold: 이미지별 |sin(pitch)| + margin으로 degenerate 경계 조정
-3. Nadir view 혼합 촬영 (향후 데이터 확장 시)
-
-**논문 기술 방향:** "oblique 전용 데이터셋에서의 한계 + nadir 혼합 시 개선 가능성"으로 기술.
+- 초기 (0~N/3): λ_m=0, 기하+의미론 독립 안정화
+- 중기 (N/3~2N/3): λ_m 점진 증가
+- 후기 (2N/3~N): λ_m 목표값
 
 ---
 
-## Ablation 설계 — 통합 번호 체계 (a)~(i)
+## Phase 3-B Ablation 설계
 
-### Core Ablation (a)~(d): 전체 접근법 검증 (스케치 4.4.1)
-
-| 조건 | 손실 구성 | 의미론 헤드 | 검증하려는 것 |
-|------|----------|-----------|-------------|
-| **(a)** Geo Only | L_depth + L_normal + L_geo | 없음 | 기하 전용 baseline |
-| **(b)** Sem Only | L_depth + L_normal + L_sem | 있음 | L_geo 없이 의미론만 추가 효과 |
-| **(c)** Independent | L_depth + L_normal + L_geo + L_sem (λ_m=0) | 있음 | 독립 최적화 baseline |
-| **(d)** Joint | L_depth + L_normal + L_geo + L_sem + L_mutual | 있음 | 양방향 상호 보강 효과 |
-
-핵심 비교: **(c) vs (d)** — 유일한 차이가 L_mutual이므로, (d)가 (c)보다 우수하면 양방향 상호 보강 효과 직접 입증.
-추가 비교: (a) vs (c) — 의미론 헤드 추가가 기하에 미치는 영향 (간접 효과).
-
-### Directional Ablation (e)~(f): 방향별 메커니즘 검증 (기여2 핵심)
-
-| 조건 | 설정 | 검증하려는 것 |
+### 기존 (Phase 3-B, L_photo 미포함, 예비)
+| 조건 | 구성 | 결과 (vs (c)) |
 |------|------|-------------|
-| **(e)** Sem→Geo only | softmax(f_i).detach() in L_mutual | R_i만 gradient. 의미론→기하 단방향 |
-| **(f)** Geo→Sem only | n_i.detach() in L_mutual | f_i만 gradient. 기하→의미론 단방향 |
+| (a) Geo Only | L_d+L_n+L_geo | — |
+| (b) Sem Only | L_d+L_n+L_sem | — |
+| (c) Independent | L_d+L_n+L_geo+L_sem | baseline |
+| (d) Joint | +L_mutual full | Normal +0.0008, mIoU **-0.0134** |
+| (e) Sem→Geo | softmax detach | mIoU -0.0025 |
+| (f) Geo→Sem | n_i detach | mIoU -0.0163 |
+| (g) No Warmup | no warmup | mIoU -0.0190 |
 
-핵심 비교: **(d) vs (e) vs (f)** — 양방향이 각 단방향보다 우수한지. (d)의 개선 > (e) + (f)이면 시너지.
-※ 스케치 원본에서 (e),(f)는 L_photo 실험이었으나 본 설계에서는 Directional ablation으로 재배치 (기여2 "양방향"의 핵심 증거이므로 우선순위 상향).
+### Phase 3-B' (L_photo 포함, 본 실험)
+| 조건 | 구성 |
+|------|------|
+| (c') Independent+Photo | L_d+L_n+L_geo+L_sem+L_photo (baseline) |
+| (d') Joint+Photo | +L_mutual full |
+| (d'-masked) | L_mutual을 GT 있는 영역에만 |
+| (d'-small) | λ_m=0.01 |
 
-### Warmup Ablation: (d) vs (g)
+---
 
-| 조건 | 설정 | 검증하려는 것 |
-|------|------|-------------|
-| **(d)** Joint (기본) | warmup 적용 (3단계 curriculum) | baseline (위 Core의 (d)와 동일) |
-| **(g)** No-warmup | warmup 없이 λ_m 즉시 적용 | warmup 필요성 검증 |
+## Phase 4: CityGML 변환 + Mesh 기반 위상 보정
 
-### L_photo Ablation (h)~(i): 선택적 추가 (스케치 4.4.2 → core 이후)
+### TSDF Mesh 활용 방향
+mesh를 CityGML의 중간 표현으로 쓰는 것이 아니라, 프리미티브는 유지하면서 TSDF mesh의 watertight 특성으로 프리미티브 사이의 위상적 문제(틈, 겹침)를 보정.
+- refuse_mesh()로 TSDF mesh 추출
+- 프리미티브-mesh 대응 분석: 미커버 영역(틈) 식별
+- 틈 영역에서 mesh 정보로 프리미티브 경계 확장/보충
 
-| 조건 | 설정 | 검증하려는 것 |
-|------|------|-------------|
-| **(h)** Photo+Indep | (c) + L_photo (λ_m=0) | 색상 추가 시 독립 기하/의미론 |
-| **(i)** Photo+Joint | (d) + L_photo | 색상+양방향 시너지 |
-
-핵심 비교: **(h) vs (i)** — L_photo 존재 하에서도 L_mutual 효과 유지되는지.
-※ (h),(i)는 Phase 3-C에서 수행 (core ablation (a)~(g) 이후).
-
-### L_mutual의 직접/간접 효과와 평가 지표
-
-```
-L_mutual = Σ_i [ p_c(i) · L_geom(n_i) ]  수식에서:
-
-∂L_mutual/∂R_i → n_i(방향) 교정 → Normal cos 직접 개선
-  = "의미론→기하" 방향의 직접 효과
-
-∂L_mutual/∂f_i → p_c(분류) 교정 → mIoU 직접 개선
-  = "기하→의미론" 방향의 직접 효과
-```
-
-Normal cos와 mIoU는 **동등하게** L_mutual의 양방향 gradient의 각각의 직접 효과이다. 한쪽이 더 중요한 것이 아니라 두 방향 모두 핵심 기여.
-
-Depth MAE는 **간접 효과**: L_mutual 수식에 c_i(위치)가 포함되지 않으며, n_i 변화가 depth 계산에 수치적으로 영향을 주더라도 MVS GT에 가까워진다는 보장이 없다. 위치 정확도는 L_depth(외부 GT 비교)와 L_geo/L_nc(내부 일관성)가 담당.
-
-**Directional ablation이 핵심 증거:**
-- (d) vs (e) Sem→Geo: Normal cos 차이 = "의미론→기하" 방향의 기여 크기
-- (d) vs (f) Geo→Sem: mIoU 차이 = "기하→의미론" 방향의 기여 크기
-- (d)의 개선 > max((e),(f)) → 양방향 시너지 입증 → 논문 핵심 클레임 지지
-
-### 기대 및 대응
-
-기대: (d)가 (c) 대비 Normal cos 또는 mIoU에서 개선, (d)의 개선 > max((e),(f)) → 양방향 시너지.
-
-**결과 해석 및 대응 전략:**
-
-**Case 1: Trivial solution 발생** (Normal cos 개선 없음 + mIoU 하락)
-설계 오류가 아닌 균형 파라미터 문제. 순서대로 보완:
-1. λ_s/λ_m 비율 조정: λ_s 증가로 L_sem이 semantic evasion 방어 강화
-2. Entropy regularization: −Σ p_c·log(p_c) 최소화 항 추가, f_i collapse 방지
-3. Confidence threshold: max(softmax(f_i)) > 0.5인 프리미티브에만 L_mutual 적용
-
-**Case 2: 효과가 기대보다 작음** (개선 있으나 marginal)
-"L_mutual이 가장 효과적인 조건 탐색"으로 접근 (이 자체가 연구 기여):
-- 원인 진단: (a) 기존 supervision이 이미 충분 (b) 하이퍼파라미터 (c) 부분적 trivial solution
-- (a)인 경우: Metric3D mono depth로 교체하여 기하 supervision이 약한 조건에서 L_mutual 효과 재확인
-  → "입력 품질이 낮을수록 L_mutual 보강 효과 증대" 가설로 조건부 기여 성립
-- 다른 데이터셋(UrbanScene3D)으로 일반화 검증
-
-**Case 3: 한 방향만 효과** (Normal cos 개선 있으나 mIoU 미개선, 또는 반대)
-Directional ablation 결과와 교차 분석:
-- "항공 데이터에서는 의미론→기하 방향이 더 지배적" 등 조건별 방향 분석으로 기술
-
-## Building Instance Segmentation (미해결 과제)
-
-현재 파이프라인은 primitive 단위로 semantic class(roof/wall/ground)를 분류하지만, **어느 건물의** roof/wall인지는 구분하지 않는다. CityGML LOD2는 `<Building>` 단위로 구성되므로, building instance 분리 없이는 의미 있는 LOD2 출력이 불가능하다.
-
-### 현재 갭
-
-```
-이미지 → COLMAP → PlanarSplatting → semantic class per primitive → ???  → CityGML
-                                          ↑ 여기까지 있음          ↑ 이게 없음
-```
-
-### 검토된 접근법 (상세: `docs/BUILDING_INSTANCE_ANALYSIS.md`)
-
-| 접근 | 방법 | 장점 | 주요 빈틈 |
-|------|------|------|-----------|
-| A: SAM instance 보존 | Phase 2-A에서 per-building mask 저장 → Phase 4에서 투영 | 학습 파이프라인 수정 없음 | Multi-view instance 매칭 불안정 |
-| B: 기하학 기반 구성 | Roof XZ 투영 → connected component → wall 귀속 | 3D 직접, multi-view 문제 없음 | 같은 높이 인접 건물 분리 어려움 |
-| C: Learnable instance | f_i 확장 (semantic + instance embedding), 3-way mutual | End-to-end, 강한 연구 기여 | Instance GT 필요, 범위 확대 |
-
-### 연구 계획 관점
-
-- **현재 실험(Phase 3-A~3-C)은 그대로 진행**: L_mutual (2-way, geometry ↔ semantics)이 핵심 기여
-- **전략 2 채택 (2026-02-27)**: 기하학 기반 grouping(접근 B) + SAM instance vote(접근 A) 하이브리드
-  - Phase 4 Part 2에서 구현. 학습 파이프라인(Phase 3-A~3-C)에 변경 없음
-  - 알고리즘: Roof 프리미티브 XZ 투영 → distance threshold 기반 connected component → 각 component = 하나의 building roof cluster → wall 프리미티브를 수평 거리 기준 최근접 roof cluster에 귀속 → roof boundary를 지면에 투영하여 GroundSurface 생성
-  - SAM 보조: Phase 2-A의 instance_maps를 참조하여, 기하학 기반으로 하나의 cluster에 속하지만 SAM이 다른 building으로 검출한 경우 분리 검토
-  - 한계: 동일 높이 인접 건물, 벽 공유 연립주택에서 under-segmentation 가능 → 논문에 명시
-- **전략 3(learnable instance embedding)은 향후 연구로**: L_mutual 2-way가 핵심 기여이며, 3-way 확장은 범위 확대 리스크
-- **논문에서의 위치**: Building instance = 기여 3(CityGML 호환성 검증)의 구현 요소. 독립적 연구 기여가 아닌 파이프라인 변환 단계로 서술
+### Building Instance 분리 (전략 2)
+1. Roof 중심 XZ 투영 → connected component → building_id
+2. Wall → 최근접 roof cluster 귀속
+3. Ground 프리미티브 필터링 (CityGML에 미포함)
+4. GroundSurface: roof 경계를 ground 높이로 투영하여 별도 생성
 
 ---
 
 ## 데이터
-- 성수동 드론 이미지 180장 (oblique, 70m, 원본 8192x5460 → 2048x1365 리사이즈)
+- 성수동 드론 이미지 180장 (oblique, 70m, 2048x1365, COLMAP 100장 학습)

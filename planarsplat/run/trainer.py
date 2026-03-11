@@ -15,7 +15,7 @@ from utils.misc_util import setup_logging, get_train_param, save_config_files, p
 from utils.trainer_util import resume_model, calculate_plane_depth, plot_plane_img, save_checkpoints
 from utils.mesh_util import get_coarse_mesh
 from utils.merge_util import merge_plane
-from utils.loss_util import normal_loss, metric_depth_loss, semantic_loss, normal_consistency_loss, mutual_loss
+from utils.loss_util import normal_loss, metric_depth_loss, semantic_loss, normal_consistency_loss, mutual_loss, photo_loss
 from utils import model_util
 
 import rerun as rr
@@ -69,6 +69,9 @@ class PlanarSplatTrainRunner():
         self.enable_semantic = self.conf.get_bool('plane_model.enable_semantic', default=False)
         self.lambda_sem = loss_plane_conf.get_float('lambda_sem', default=0.1)
         self.lambda_geo = loss_plane_conf.get_float('lambda_geo', default=0.0)
+        # L_photo (Phase 3-B')
+        self.enable_photo = self.conf.get_bool('plane_model.enable_photo', default=False)
+        self.lambda_photo = loss_plane_conf.get_float('lambda_photo', default=0.0)
         # L_mutual (Phase 3-A)
         self.lambda_mutual = loss_plane_conf.get_float('lambda_mutual', default=0.0)
         self.mutual_warmup_start = loss_plane_conf.get_float('mutual_warmup_start', default=0.33)
@@ -191,7 +194,9 @@ class PlanarSplatTrainRunner():
             view_info = self.dataset.view_info_list[0]
             raster_cam_w2c = view_info.raster_cam_w2c
             with torch.no_grad():
-                rendered_rgb, allmap = self.net.planarSplat(view_info, iter, return_rgb=True)
+                rendered_all, allmap = self.net.planarSplat(view_info, iter, return_rgb=True)
+                rendered_rgb_7ch = rendered_all[:3]   # (3, H, W) RGB
+                rendered_sem_4ch = rendered_all[3:]   # (4, H, W) semantic
                 depth = allmap[0:1].squeeze()
                 normal_local = allmap[2:5]
                 normal_global = (normal_local.permute(1, 2, 0) @ (raster_cam_w2c[:3, :3].T)).reshape(-1, 3)
@@ -199,11 +204,8 @@ class PlanarSplatTrainRunner():
 
             import matplotlib.cm as cm
 
-            # --- RGB (NOTE: colors are random each forward pass, so RGB comparison is
-            # NOT meaningful for tracking quality. Use depth/normal instead.) ---
-            rgb_hw_c = rendered_rgb.permute(1, 2, 0).clamp(0, 1)
-            if rgb_hw_c.shape[2] > 3:
-                rgb_hw_c = rgb_hw_c[:, :, :3]
+            # --- RGB ---
+            rgb_hw_c = rendered_rgb_7ch.permute(1, 2, 0).clamp(0, 1)  # (H, W, 3)
             rgb_np = (rgb_hw_c * 255).cpu().numpy().astype(np.uint8)
             gt_rgb_np = (view_info.rgb.reshape(self.H, self.W, 3) * 255).cpu().numpy().astype(np.uint8)
             rgb_compare = np.concatenate([gt_rgb_np, rgb_np], axis=1)
@@ -235,7 +237,7 @@ class PlanarSplatTrainRunner():
             # --- Semantic (Phase 2-B) ---
             if self.enable_semantic:
                 # Rendered semantic: argmax of alpha-blended features
-                sem_pred = rendered_rgb.argmax(dim=0).cpu().numpy()  # (H, W)
+                sem_pred = rendered_sem_4ch.argmax(dim=0).cpu().numpy()  # (H, W)
                 # Color map: bg=black, roof=red, wall=blue, ground=gray
                 sem_color_map = np.array([
                     [0, 0, 0],       # 0: bg
@@ -507,7 +509,10 @@ class PlanarSplatTrainRunner():
             # ======================================= zero grad
             self.net.optimizer.zero_grad()
             #  ======================================= plane forward
-            rendered_features, allmap = self.net.planarSplat(view_info, iter, return_rgb=True)
+            rendered_all, allmap = self.net.planarSplat(view_info, iter, return_rgb=True)
+            # Split 7-channel output: [RGB(3) | Semantic(4)]
+            rendered_rgb = rendered_all[:3]        # (3, H, W)
+            rendered_features = rendered_all[3:]   # (4, H, W) semantic logits
             # ------------ get rendered maps
             depth = allmap[0:1].squeeze().view(-1)
             normal_local_ = allmap[2:5]
@@ -548,6 +553,13 @@ class PlanarSplatTrainRunner():
                     loss_geo = normal_consistency_loss(depth_2d, normal_local_hw3, intrinsic, mask=vis_mask_2d)
                     loss_final += self.lambda_geo * loss_geo * decay
                     loss_geo_value = loss_geo.detach().item()
+
+            # ------------ L_photo (Phase 3-B'): photometric RGB loss
+            loss_photo_value = 0.
+            if self.enable_photo and self.lambda_photo > 0:
+                loss_photo = photo_loss(rendered_rgb, view_info.rgb, mask=valid_ray_mask)
+                loss_final += self.lambda_photo * loss_photo * decay
+                loss_photo_value = loss_photo.detach().item()
 
             # ------------ L_mutual (Phase 3-A): per-primitive geometric-semantic consistency
             loss_mutual_value = 0.
@@ -599,6 +611,8 @@ class PlanarSplatTrainRunner():
                         "L_total": f"{loss_final_value:.4f}",
                         "Trend": trend_state_name,
                     }
+                    if self.enable_photo:
+                        loss_dict["L_photo"] = f"{loss_photo_value:.4f}"
                     if self.enable_semantic:
                         loss_dict["L_sem"] = f"{loss_sem_value:.4f}"
                         loss_dict["L_geo"] = f"{loss_geo_value:.4f}"
@@ -634,6 +648,9 @@ class PlanarSplatTrainRunner():
                         trend_delta=trend_delta,
                         trend_state=trend_state_code,
                     )
+                    # L_photo TensorBoard logging (Phase 3-B')
+                    if self.enable_photo and self.tb_writer is not None:
+                        self.tb_writer.add_scalar('loss/photo', loss_photo_value, iter)
                     # Semantic TensorBoard logging (Phase 2-B)
                     if self.enable_semantic and self.tb_writer is not None:
                         self.tb_writer.add_scalar('loss/semantic', loss_sem_value, iter)

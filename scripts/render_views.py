@@ -151,14 +151,62 @@ def render_and_save(checkpoint_path, output_dir, num_views=3, view_indices=None)
         plt.savefig(os.path.join(output_dir, f'normal_view{i:02d}.png'), dpi=150, bbox_inches='tight')
         plt.close()
 
-        # Save RGB (GT only since rendered color is random)
-        fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-        ax.imshow(gt_rgb)
-        ax.set_title(f'GT RGB (View {idx})')
-        ax.axis('off')
+        # Save RGB
+        enable_photo = conf.get_bool('plane_model.enable_photo', default=False)
+        rendered_all, _ = wrapper.planarSplat(view, iter=-1, return_rgb=True)
+        if enable_photo:
+            rendered_rgb_img = rendered_all[:3].detach().permute(1, 2, 0).clamp(0, 1).cpu().numpy()
+            fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+            axes[0].imshow(gt_rgb)
+            axes[0].set_title('GT RGB')
+            axes[0].axis('off')
+            axes[1].imshow(rendered_rgb_img)
+            axes[1].set_title('Rendered RGB')
+            axes[1].axis('off')
+        else:
+            fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+            ax.imshow(gt_rgb)
+            ax.set_title(f'GT RGB (View {idx})')
+            ax.axis('off')
         plt.tight_layout()
         plt.savefig(os.path.join(output_dir, f'rgb_view{i:02d}.png'), dpi=150, bbox_inches='tight')
         plt.close()
+
+        # Semantic map (if enable_semantic)
+        enable_semantic = conf.get_bool('plane_model.enable_semantic', default=False)
+        if enable_semantic:
+            # rendered_all is (C, H, W). Semantic logits are last 4 channels.
+            sem_logits = rendered_all[rendered_all.shape[0]-4:]  # (4, H, W)
+            sem_pred = sem_logits.argmax(dim=0).cpu().numpy()  # (H, W)
+
+            # Class color map: bg=black, roof=red, wall=blue, ground=gray
+            class_colors = np.array([
+                [0, 0, 0],        # 0: background
+                [220, 60, 60],    # 1: roof (red)
+                [60, 60, 220],    # 2: wall (blue)
+                [160, 160, 160],  # 3: ground (gray)
+            ], dtype=np.uint8)
+            sem_vis = class_colors[sem_pred.reshape(H, W)]
+
+            # GT semantic
+            gt_seg = view.seg_map
+            if gt_seg is not None:
+                gt_seg_img = class_colors[gt_seg.cpu().numpy().reshape(H, W)]
+                fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+                axes[0].imshow(gt_seg_img)
+                axes[0].set_title('GT Semantic')
+                axes[0].axis('off')
+                axes[1].imshow(sem_vis)
+                axes[1].set_title('Predicted Semantic')
+                axes[1].axis('off')
+            else:
+                fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+                ax.imshow(sem_vis)
+                ax.set_title('Predicted Semantic')
+                ax.axis('off')
+            plt.tight_layout()
+            plt.savefig(os.path.join(output_dir, f'semantic_view{i:02d}.png'), dpi=150, bbox_inches='tight')
+            plt.close()
 
         logger.info(f"Saved view {i} (dataset idx={idx})")
 

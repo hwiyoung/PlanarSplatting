@@ -22,6 +22,83 @@ def normal_loss(normal_pred, normal_gt, mask):
     return l1, cos
 
 
+# ==================== Phase 3-B': Photometric loss ====================
+
+def photo_loss(rendered_rgb, gt_rgb, mask=None, lambda_ssim=0.2):
+    """L_photo: L1 + SSIM photometric loss.
+
+    Args:
+        rendered_rgb: (3, H, W) rendered RGB image
+        gt_rgb: (H*W, 3) or (3, H, W) ground truth RGB
+        mask: (H*W,) valid pixel mask (optional)
+        lambda_ssim: SSIM weight (default 0.2)
+
+    Returns:
+        loss scalar
+    """
+    H, W = rendered_rgb.shape[1], rendered_rgb.shape[2]
+
+    # Normalize GT to [0, 1]
+    if gt_rgb.dim() == 2:
+        gt_img = gt_rgb.reshape(H, W, 3).permute(2, 0, 1)  # (3, H, W)
+    else:
+        gt_img = gt_rgb
+    if gt_img.max() > 1.0:
+        gt_img = gt_img / 255.0
+
+    pred_img = rendered_rgb  # (3, H, W), already [0,1] from sigmoid
+
+    if mask is not None:
+        mask_2d = mask.reshape(H, W)
+        # Apply mask: zero out invalid regions
+        pred_masked = pred_img * mask_2d.unsqueeze(0)
+        gt_masked = gt_img * mask_2d.unsqueeze(0)
+    else:
+        pred_masked = pred_img
+        gt_masked = gt_img
+        mask_2d = torch.ones(H, W, device=rendered_rgb.device, dtype=torch.bool)
+
+    # L1 loss (only on valid pixels)
+    n_valid = mask_2d.sum().clamp(min=1)
+    l1 = (pred_masked - gt_masked).abs().sum() / (n_valid * 3)
+
+    # SSIM loss (window-based, tolerates some masked regions)
+    ssim_val = _ssim(pred_masked.unsqueeze(0), gt_masked.unsqueeze(0))
+
+    loss = (1.0 - lambda_ssim) * l1 + lambda_ssim * (1.0 - ssim_val)
+    return loss
+
+
+def _ssim(img1, img2, window_size=11):
+    """Compute SSIM between two (1, 3, H, W) images."""
+    C1 = 0.01 ** 2
+    C2 = 0.03 ** 2
+    channel = img1.shape[1]
+
+    # Gaussian window
+    kernel_1d = torch.exp(-torch.arange(window_size, dtype=torch.float32, device=img1.device)
+                          .sub(window_size // 2).pow(2) / (2 * 1.5 ** 2))
+    kernel_1d = kernel_1d / kernel_1d.sum()
+    kernel_2d = kernel_1d.unsqueeze(1) * kernel_1d.unsqueeze(0)
+    window = kernel_2d.expand(channel, 1, window_size, window_size).contiguous()
+
+    pad = window_size // 2
+    mu1 = F.conv2d(img1, window, padding=pad, groups=channel)
+    mu2 = F.conv2d(img2, window, padding=pad, groups=channel)
+
+    mu1_sq = mu1 ** 2
+    mu2_sq = mu2 ** 2
+    mu1_mu2 = mu1 * mu2
+
+    sigma1_sq = F.conv2d(img1 * img1, window, padding=pad, groups=channel) - mu1_sq
+    sigma2_sq = F.conv2d(img2 * img2, window, padding=pad, groups=channel) - mu2_sq
+    sigma12 = F.conv2d(img1 * img2, window, padding=pad, groups=channel) - mu1_mu2
+
+    ssim_map = ((2 * mu1_mu2 + C1) * (2 * sigma12 + C2)) / \
+               ((mu1_sq + mu2_sq + C1) * (sigma1_sq + sigma2_sq + C2))
+    return ssim_map.mean()
+
+
 # ==================== Phase 2-B: Semantic losses ====================
 
 def semantic_loss(rendered_features, seg_gt, mask=None):

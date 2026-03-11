@@ -47,6 +47,10 @@ def load_checkpoint_params(checkpoint_path):
     sem_key = 'planarSplat._plane_semantic_features'
     if sem_key in state:
         params['semantic_features'] = state[sem_key]
+    # Learned RGB colors (Phase 3-B')
+    color_key = 'planarSplat._plane_colors_rgb'
+    if color_key in state:
+        params['colors_rgb'] = state[color_key]
     return params, ckpt.get('iter', -1)
 
 
@@ -183,7 +187,11 @@ def main():
     if args.color_by == 'normal':
         colors = color_by_normal(normals)
     elif args.color_by == 'rgb':
-        colors = torch.rand(N, 3)
+        if 'colors_rgb' in params:
+            colors = torch.sigmoid(params['colors_rgb'])  # match forward() activation
+        else:
+            print("Warning: no learned RGB colors in checkpoint, using random.")
+            colors = torch.rand(N, 3)
     elif args.color_by == 'depth':
         colors = color_by_depth(params['center'])
     elif args.color_by == 'class':

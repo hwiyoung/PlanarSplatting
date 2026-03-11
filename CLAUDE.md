@@ -1,199 +1,103 @@
 # Semantic PlanarSplatting
 
 ## 프로젝트 개요
-PlanarSplatting(CVPR 2025)을 확장하여 항공 드론 이미지에서 건물 구성요소 의미론(roof/wall/ground)을 추가하는 박사 연구. 핵심 기여는 L_mutual 손실 함수로, 기하학적 법선(R_i에서 유도)과 의미론적 분류(f_i)가 서로를 개선하는 양방향 상호 보강을 구현한다. 최종 출력은 CityGML LOD2 형식의 의미론적 3D 건물 모델.
+PlanarSplatting(CVPR 2025)을 확장하여 항공 드론 이미지에서 건물 구성요소 의미론(roof/wall/ground)이 통합된 평면 프리미티브를 학습하고, CityGML LOD2 형식의 건물 모델을 자동 생성하는 박사 연구. 기여의 정확한 경계는 실험 결과에 따라 확정하며, 현재 세 가지 방향을 병행 탐색 중:
+- **방향 A**: 평면 프리미티브 + 의미론 통합이 CityGML LOD2 생성에 적합함을 실증
+- **방향 B**: 의미론-기하학 동시 최적화를 통한 상호보완 (L_mutual)
+- **방향 C**: TSDF mesh의 watertight 특성으로 splatting 토폴로지 보정
+
+### 연구 방향 조정 (2026-03-11)
+- L_photo를 기본 설정에 포함 (L_photo 미포함 조건은 유지하지 않음)
+- Phase 4(CityGML 변환 + mesh 보정)를 최우선으로 진행
+- L_mutual은 파이프라인의 한 구성요소 (효과와 한계 분석 대상)
+- 기존 Phase 3-B 결과는 "L_photo 미포함 예비 분석"으로 재위치
+- Ground class = 지면(terrain), CityGML GroundSurface(건물 바닥면)와 구별. Context class.
+- 상세: docs/ADVISOR_FEEDBACK_RESPONSE.md
 
 ## 상세 문서 (필요 시 참조)
-- `docs/RESEARCH_CONTEXT.md` — 연구 배경, 전체 파라미터 구조, L_mutual 수식/gradient 분석, ablation 설계
-- `docs/EXPERIMENT_PLAN.md` — Phase별 목표/입력/출력/Go-No-Go/확인 방법/프롬프트
+- `docs/RESEARCH_CONTEXT.md` — 연구 배경, 파라미터 구조, 손실 함수 설계
+- `docs/EXPERIMENT_PLAN.md` — Phase별 목표/프롬프트/실험 우선순위
+- `docs/ADVISOR_FEEDBACK_RESPONSE.md` — 지도교수 피드백 대응, 기여 방향, 실험 우선순위
 
 ## 개발 환경: Docker 기반
-이 프로젝트의 모든 개발과 실행은 Docker 컨테이너 내부에서 수행한다.
+모든 개발과 실행은 Docker 컨테이너 내부에서 수행.
 
 - **Docker 이미지:** `planarsplat:cu121` (nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04, PyTorch 2.3.1)
-- **서비스 (docker-compose.yml):**
-  - `planarsplat` (컨테이너명: `planarsplat`) — 학습+TensorBoard+웹뷰어 통합. `tools/run_monitor.sh` 실행.
-  - `shell` (컨테이너명: `planarsplat-shell`) — 대화형 셸 (Gradio 포트 7860)
-- **볼륨 마운트:**
-  - `./` → `/workspace/PlanarSplatting` (전체 소스)
-  - `./data` → `/workspace/PlanarSplatting/data`
-  - `${PLANARSPLAT_OUTPUT_DIR:-./planarSplat_ExpRes}` → `/workspace/PlanarSplatting/planarSplat_ExpRes`
-  - `${PLANARSPLAT_INPUT_DIR:-./user_inputs}` → `/workspace/PlanarSplatting/user_inputs`
-  - `${PLANARSPLAT_HF_CACHE:-./.cache/huggingface}` → `/root/.cache/huggingface`
-- **포트 (docker-compose 기본값 → .env로 변경 가능):**
-  - `${PLANARSPLAT_TB_PORT:-6006}:6006` — TensorBoard (현재 호스트: 16006 → `ssh -L 16006:localhost:16006 서버` → `http://localhost:16006`)
-  - `${PLANARSPLAT_SYNC_VIEWER_PORT:-18080}:18080` — 3D Sync Dual Viewer (`http://localhost:18080/sync_dual_viewer.html`)
-  - `7860:7860` — Gradio (shell 서비스)
+- **서비스:**
+  - `planarsplat` (컨테이너: `planarsplat`) — 학습+TensorBoard+웹뷰어. `tools/run_monitor.sh`
+  - `shell` (컨테이너: `planarsplat-shell`) — 대화형 셸 (Gradio 7860)
+- **볼륨:** `./` → `/workspace/PlanarSplatting`, `./data`, `./planarSplat_ExpRes`, `./user_inputs`, `./.cache/huggingface`
+- **포트:** TensorBoard(6006→16006), Sync Viewer(18080), Gradio(7860)
 - **GPU:** `gpus: all`, `shm_size: 16g`, `ipc: host`
-- **모든 python/pip/학습 명령은 반드시 컨테이너 내부에서 실행**
-- **패키지 설치:** 컨테이너 내 pip install + Dockerfile에도 추가 (재빌드 시 유지)
-- **3D 시각화:** Sync Dual Viewer (Three.js 웹 뷰어, `tools/run_sync_dual_viewer.py`), 또는 PLY export → scp → 로컬 CloudCompare
-- **데스크톱 GUI 앱(Open3D GUI, MeshLab 등)은 컨테이너에서 직접 실행 불가** — 웹 뷰어 또는 PLY export로 대체
 
 ## 코드 구조
 ```
 PlanarSplatting/
-├── run_demo.py                          # VGGT 기반 데모 엔트리
-├── run_demo_colmap.py                   # COLMAP 기반 엔트리 (COLMAP→Metric3D→scale align→train)
-├── run_gradio_demo.py                   # Gradio 웹 UI
-├── Dockerfile                           # nvidia/cuda:12.1.1, PyTorch 2.3.1, CUDA submodule 빌드
-├── docker-compose.yml                   # 서비스: planarsplat (학습), shell (대화형)
-├── requirements.txt
-│
-├── planarsplat/                          # 핵심 라이브러리
-│   ├── confs/                           # pyhocon 설정 (.conf)
-│   │   └── base_conf_planarSplatCuda.conf  # 기본 config (train, dataset, plane_model)
-│   ├── run/
-│   │   ├── trainer.py                   # PlanarSplatTrainRunner (학습 루프 L348, TensorBoard)
-│   │   ├── net_wrapper.py               # PlanarRecWrapper (Adam optimizer, split/prune/density)
-│   │   └── runner.py
-│   ├── net/
-│   │   └── net_planarSplatting.py       # PlanarSplat_Network (7 learnable params: 6 geo + f_i, forward→rasterizer)
-│   ├── data_loader/
-│   │   ├── scene_dataset.py             # 일반 학습 데이터셋
-│   │   └── scene_dataset_demo.py        # 데모 데이터셋 (ViewInfo, SceneDatasetDemo)
-│   ├── monocues/
-│   │   └── metric3d.py                  # Metric3D mono depth/normal 추론
-│   └── utils/
-│       ├── loss_util.py                 # 4개 손실: metric_depth_loss, normal_loss, semantic_loss (Phase 2-B), normal_consistency_loss (Phase 2-B)
-│       ├── trainer_util.py              # plot_plane_img, save/resume checkpoint
-│       ├── model_util.py                # quaternion ops, split mask logic
-│       ├── mesh_util.py                 # TSDF mesh (refuse_mesh), depth rendering
-│       ├── merge_util.py                # merge_plane (후처리 병합)
-│       ├── plot_util.py                 # plot_rectangle_planes → Open3D mesh 생성
-│       └── graphics_utils.py            # projection matrix, focal2fov
-│
-├── submodules/
-│   ├── diff-rect-rasterization/         # CUDA 사각형 rasterizer (forward.cu L381-418: alpha, backward.cu: color grad 추가)
-│   ├── quaternion-utils/                # CUDA quaternion 연산
-│   ├── Metric3D/                        # mono depth/normal 추정 (hubconf.py)
-│   └── vggt/                            # VGGT 포인트 클라우드 추정
-│
-├── tools/
-│   ├── run_monitor.sh                   # Docker entrypoint (TensorBoard + 학습 + Sync Viewer)
-│   ├── run_tensorboard_latest.py        # 최신 실험 TB 실행
-│   ├── run_sync_dual_viewer.py          # Three.js 3D 웹 뷰어 서버 (포트 18080)
-│   ├── plot_training_log.py
-│   └── sync_viewer_assets/              # Three.js, OrbitControls, TrackballControls
-│
-├── utils_demo/
-│   ├── run_planarSplatting.py           # 학습 실행 래퍼
-│   ├── run_metric3d.py                  # Metric3D 실행
-│   ├── run_vggt.py                      # VGGT 실행
-│   ├── read_write_model.py              # COLMAP binary I/O
-│   ├── demo.conf                        # 데모 전용 config override
-│   └── misc.py
-│
-├── scripts/                             # 평가, 시각화, 데이터 변환 스크립트
-│   ├── visualize_primitives.py          # 체크포인트 → PLY export (--color_by normal/class)
-│   ├── evaluate.py                      # 체크포인트 → Depth MAE, Normal cos, Semantic mIoU → JSON
-│   ├── render_views.py                  # 체크포인트 → RGB/Depth/Normal 이미지 렌더링
-│   ├── colmap_to_ps.py                  # COLMAP 출력 → PlanarSplatting input_data.pth 변환
-│   ├── generate_segmentation.py         # Grounded SAM 2 + MVS normal → seg_maps 생성
-│   ├── gradient_check_phase2b.py        # Phase 2-B gradient check (6개 자동 테스트)
-│   └── gradient_check_phase3a.py        # Phase 3-A gradient check (14개 자동 테스트: L_mutual 양방향)
-│
-├── planarSplat_ExpRes/                  # 실험 결과 (볼륨 마운트)
-│   ├── demo/                            # 실험별 하위: exp_name/timestamp/
-│   │   └── exp_*/timestamp/
-│   │       ├── tensorboard/             # TensorBoard 이벤트
-│   │       ├── checkpoints/Parameters/  # latest.pth, 5000.pth
-│   │       ├── plane_plots/             # 시각화 이미지, PLY
-│   │       └── input_data.pth           # 저장된 입력 데이터
-│   └── sync_viewer_live/               # 웹 뷰어 HTML
-│
-└── data/                                # 입력 데이터 (볼륨 마운트)
+├── planarsplat/
+│   ├── confs/base_conf_planarSplatCuda.conf
+│   ├── run/trainer.py, net_wrapper.py
+│   ├── net/net_planarSplatting.py
+│   ├── utils/loss_util.py, mesh_util.py, merge_util.py
+├── submodules/diff-rect-rasterization/ (CUDA rasterizer)
+├── scripts/ (evaluate.py, visualize_primitives.py, generate_segmentation.py 등)
+├── tools/ (run_monitor.sh, run_sync_dual_viewer.py)
+└── utils_demo/ (run_planarSplatting.py, demo.conf)
 ```
 
-### 핵심 데이터 흐름
-1. **입력**: 이미지 → COLMAP SfM/MVS(depth, normal) → SceneDatasetDemo(ViewInfo 리스트 + seg_maps)
-2. **학습**: PlanarSplatTrainRunner.train() → PlanarSplat_Network.forward() → CUDA rasterizer → rendered_features[4ch] + allmap[7ch]
-3. **손실 (기하)**: allmap → depth(ch0), normal(ch2-4) → metric_depth_loss + normal_loss → backward
-4. **손실 (의미론, Phase 2-B)**: rendered_features → semantic_loss(vs seg_map GT) + normal_consistency_loss(depth-derived vs rendered normal)
-5. **밀도 제어**: net_wrapper.split_plane()/prune_small_plane() — 7 params(6 geo + f_i) 모두 동기 처리
-6. **후처리**: merger() → TSDF mesh → merge_plane → PLY 출력
-
-### 프리미티브 파라미터 (6+1 learnable + 2 non-learnable)
+### 프리미티브 파라미터 (7 learnable + 2 non-learnable)
 | 변수 | 차원 | 의미 | Learnable |
 |------|------|------|-----------|
-| `_plane_center` | (N,3) | 중심 위치 | ✓ lr=0.001 |
-| `_plane_radii_xy_p` | (N,2) | +방향 반경 | ✓ lr=0.001 |
-| `_plane_radii_xy_n` | (N,2) | -방향 반경 | ✓ lr=0.001 |
-| `_plane_rot_q_normal_wxy` | (N,3) | 법선 회전 quat(w,x,y) | ✓ lr=0.001 |
-| `_plane_rot_q_xyAxis_w` | (N,1) | 면내 회전 quat w | ✓ lr=0.001 |
-| `_plane_rot_q_xyAxis_z` | (N,1) | 면내 회전 quat z | ✓ lr=0.001 |
-| `_plane_semantic_features` | (N,4) | 의미론적 특징 (Phase 2-B) | ✓ lr=0.005 (enable_semantic 시) |
-| `colors_precomp` | (N,4) | semantic=f_i / else=random | ✗ (rasterizer 입력) |
-| `opacities` | (N,1) | 불투명도 (=1) | ✗ |
+| `_plane_center` | (N,3) | 중심 | ✓ lr=0.001 |
+| `_plane_radii_xy_p` | (N,2) | +반경 | ✓ lr=0.001 |
+| `_plane_radii_xy_n` | (N,2) | -반경 | ✓ lr=0.001 |
+| `_plane_rot_q_normal_wxy` | (N,3) | 법선 회전 | ✓ lr=0.001 |
+| `_plane_rot_q_xyAxis_w` | (N,1) | 면내 회전 w | ✓ lr=0.001 |
+| `_plane_rot_q_xyAxis_z` | (N,1) | 면내 회전 z | ✓ lr=0.001 |
+| `_plane_semantic_features` | (N,4) | 의미론 (bg/roof/wall/ground) | ✓ lr=0.005 |
+| `colors_precomp` | (N,4) | rasterizer 입력 | ✗ |
+| `opacities` | (N,1) | =1 고정 | ✗ |
 
-### allmap 채널 (rasterizer 출력)
-| 채널 | 의미 |
-|------|------|
-| 0 | depth |
-| 1 | alpha (누적 가중치) |
-| 2-4 | normal (local 좌표) |
-| 5 | mid_depth |
-| 6 | distortion |
-
-### 모니터링 스크립트 사용법 (Docker 컨테이너 내부)
-```bash
-# PLY export (normal 색상)
-python scripts/visualize_primitives.py --checkpoint path/to/latest.pth --color_by normal
-
-# PLY export (semantic class 색상: roof=red, wall=blue, ground=gray)
-python scripts/visualize_primitives.py --checkpoint path/to/latest.pth --color_by class
-
-# 평가 (depth_mae, normal_cos가 의미 있음. PSNR은 random color 때문에 무의미)
-python scripts/evaluate.py --checkpoint path/to/latest.pth --metrics depth_mae normal_cos
-
-# Semantic mIoU 포함 평가 (enable_semantic 학습 후)
-python scripts/evaluate.py --checkpoint path/to/latest.pth --metrics depth_mae normal_cos semantic_miou
-
-# 이전 결과와 비교
-python scripts/evaluate.py --checkpoint path/to/latest.pth --compare_with prev_results.json
+### 손실 함수 구조 (L_photo 포함 설계)
+```
+L_depth  ──→ c_i, r_i, R_i
+L_normal ──→ R_i
+L_geo    ──→ R_i  (현재 L_nc만 활성)
+L_sem    ──→ f_i  (gradient 격리: f_i에만 흐름)
+L_photo  ──→ color_i, c_i, R_i, r_i  (Phase 3-B'에서 추가)
+L_mutual ──→ R_i + f_i  (양방향, 이 둘만 연결)
 ```
 
-### TensorBoard 채널
-**이미지 (tb_image_freq=500):**
-| 태그 | 내용 | 비고 |
-|------|------|------|
-| `compare/1_rgb` | GT\|Rendered RGB side-by-side | 색상이 random이므로 참고용 |
-| `compare/2_depth` | GT\|Rendered Depth (viridis) | 학습 추적에 유용 |
-| `compare/3_normal` | GT\|Rendered Normal ((n+1)/2) | 학습 추적에 유용 |
-| `compare/4_semantic` | GT\|Predicted semantic (enable_semantic 시) | Phase 2-B |
-| `gt/*`, `render/*` | 개별 채널 (확대용) | |
-
-**스칼라 (enable_semantic 시 추가):**
-| 태그 | 내용 | 주기 |
-|------|------|------|
-| `loss/semantic` | L_sem 값 | log_freq=50 |
-| `loss/geo_nc` | L_geo (normal consistency) 값 | log_freq=50 |
-| `semantic/class_*_count` | 클래스별 프리미티브 수 (bg/roof/wall/ground) | 100 iter |
+### 모니터링 스크립트
+```bash
+python scripts/visualize_primitives.py --checkpoint path --color_by normal|class
+python scripts/evaluate.py --checkpoint path --metrics depth_mae normal_cos semantic_miou
+```
 
 ## 현재 진행 상태
-- [x] Phase 0-Setup: 모니터링 환경 구축
-- [x] Phase 0: SfM/MVS 입력 확보 (COLMAP 180장 정합, 100장 학습, Depth MAE=0.067, Normal cos=0.911)
-- [x] Phase 1: MVS Depth+Normal Supervision 교체 (Depth MAE=0.0229, Normal cos=0.7811 vs MVS GT — planar 버그 수정 + cross-eval 완료)
-- [x] Phase 2-A: 2D Segmentation 생성 (v10: Confident Labels Only, ambiguous→BG, Roof 5.9%/Wall 23.4%/Ground 19.5%, Go)
-- [x] Phase 2-B: 의미론적 헤드 구현 (f_i parameter, L_sem, L_geo, CUDA backward fix, gradient isolation 검증 완료)
-- [x] Phase 2-C: L_sem 독립 학습 (Depth MAE=0.027, Normal cos=0.782, mIoU=0.810, Go)
-- [x] Phase 3-A: L_mutual 구현 (양방향 gradient 검증 14/14 PASS, warmup curriculum, ablation .conf 7개)
-- [ ] Phase 3-B: Ablation 7조건 — (a)GeoOnly (b)SemOnly (c)Independent (d)Joint (e)Sem→Geo (f)Geo→Sem (g)NoWarmup
-- [ ] Phase 3-C: L_photo 추가 — (h)Photo+Indep (i)Photo+Joint (선택적, 논문 유형에 따라)
-- [ ] Phase 4: Building Grouping + CityGML LOD2 변환 + val3dity 검증
+- [x] Phase 0-Setup ~ Phase 3-A: 완료
+- [x] Phase 3-B: 7조건 ablation 완료 (L_photo 미포함, **예비 분석으로 재위치**)
+  - mIoU -0.0134 (L_mutual 악화), 양방향 시너지 미입증
+  - 경로 1(cross-view contamination) / 경로 2(직접 충돌) 진단 → Phase 3-B' 설계 근거
+- [x] **Phase 3-B'-Step1**: L_photo 구현 + (c') baseline 확립 (Depth MAE -5.1%, PSNR 15.0dB)
+- [ ] **Phase 4 프로토타입**: CityGML 변환 + mesh 보정 ← **다음**
+- [ ] Phase 3-B'-Step2: L_mutual 재실험 (L_photo 포함)
+- [ ] City3D 비교
+- [ ] Phase 4 고도화 (mesh 토폴로지 보정)
 
 ## 중요 규칙
-- **Docker:** 모든 명령은 컨테이너 내부에서. pip install 시 Dockerfile에도 반영.
-- f_i는 adaptive density control (split/clone/prune) 시 반드시 함께 처리 (구현 완료, Phase 2-B)
-- L_mutual에서 detach 금지 (양방향 gradient 필수). ablation 시에만 선택적 detach
-- **L_mutual 구조** (3항, 각 항의 물리적 의미):
-  - `p_wall · L_vert`: 벽 프리미티브의 법선 → 수평 (n·e_gravity ≈ 0)
-  - `p_roof · L_slope`: 지붕 프리미티브가 벽처럼 수평이면 penalty, τ=0.15 (단측)
-  - `p_ground · L_horiz`: 지면 프리미티브의 법선 → 수직 (|n·e_gravity| ≈ 1)
-  - `e_gravity = [0,-1,0]` (COLMAP world frame, 검증값: world_up avg [+0.022,-0.998,+0.055])
-  - **detach 금지** (양방향 gradient 필수). ablation (e)/(f)에서만 선택적 detach
-- **Semantic 렌더링**: Option A 확정 (raw f_i → colors_precomp → CUDA rasterizer alpha-blend → softmax → CE loss)
-- **CUDA rasterizer 수정 사항** (Phase 2-B): config.h NUM_CHANNELS=4, backward.cu에 color gradient atomicAdd 추가. Color→alpha gradient path는 의도적 미구현 (L_sem→geometry 격리).
-- 기존 PlanarSplatting 기능 보존: `--enable_semantic` 플래그로 새 기능 on/off (default=False)
-- 각 Phase 완료 시 results/phaseX/REPORT.md 생성 (정량+정성 결과 포함, 템플릿은 EXPERIMENT_PLAN.md 하단 참조)
-- Phase 진행 시 docs/EXPERIMENT_PLAN.md의 해당 Phase를 반드시 읽고 따를 것
+- **Docker:** 모든 명령은 컨테이너 내부. pip install 시 Dockerfile에도 반영.
+- **L_photo 기본 포함**: 새로운 실험은 L_photo를 기본 설정에 포함. L_photo 미포함 조건은 유지 불요.
+- **Ground class**: 지면(terrain). CityGML GroundSurface(건물 바닥면)와 다름. Context class로서 roof/wall 식별 정확도 향상 목적. CityGML 변환 시 필터링.
+- f_i는 density control (split/clone/prune) 시 함께 처리 (구현 완료)
+- L_mutual에서 detach 금지 (양방향 gradient). ablation 시에만 선택적 detach
+- **L_mutual 구조** (3항):
+  - `p_wall · L_vert`: 벽 법선 → 수평
+  - `p_roof · L_slope`: 지붕이 벽처럼 수평이면 penalty (τ=0.15)
+  - `p_ground · L_horiz`: 지면 법선 → 수직
+  - `e_gravity = [0,-1,0]` (COLMAP frame)
+- **CUDA rasterizer**: NUM_CHANNELS=7 (3 RGB + 4 semantic, Phase 3-B'), backward.cu에 color gradient atomicAdd (Phase 2-B)
+- `--enable_semantic` 플래그로 의미론 on/off (default=False)
+- 각 Phase 완료 시 results/phaseX/REPORT.md 생성 (EXPERIMENT_PLAN.md 하단 템플릿 준용)
+  - **정성적 결과**: 파일 경로 나열이 아니라, 각 이미지를 언급하며 관찰 내용 서술
+  - **PLY 필수 산출물**: normal.ply + class.ply + rgb.ply (enable_photo 시). 각 PLY 관찰 서술
+- Phase 진행 시 docs/EXPERIMENT_PLAN.md 반드시 참고
