@@ -102,19 +102,71 @@ Phase 3-B는 L_mutual 손실 함수의 효과를 체계적으로 검증하는 ab
 
 각 조건별 9개 뷰(View 0, 12, 25, 37, 50, 62, 75, 87, 99)에 대해 Depth, Normal, Semantic(해당 시) 렌더링을 `images/{a~g}/` 에 저장하였다. PLY 파일은 `ply/{a~g}_{normal,class}.ply`에 저장.
 
-### 주요 관찰 (렌더링 이미지 기반)
+### (c) Independent vs (d) Joint 비교 — View 00 (oblique, 초반)
+
+GT RGB 참고:
+![GT RGB View 00](images/c/rgb_view00.png)
+
+Depth 비교 — 시각적 차이 거의 없음 (MAE 차이 0.0005):
+![Depth (c)](images/c/depth_view00.png)
+![Depth (d)](images/d/depth_view00.png)
+
+Normal 비교 — (d)에서 건물 벽면 법선이 미세하게 더 균일하나 육안 구분 어려움:
+![Normal (c)](images/c/normal_view00.png)
+![Normal (d)](images/d/normal_view00.png)
+
+Semantic 비교 — (c)가 GT와 더 유사. (d)에서 roof-wall 경계 오분류 관찰:
+![Semantic (c)](images/c/semantic_view00.png)
+![Semantic (d)](images/d/semantic_view00.png)
+
+### (c) vs (d) 비교 — View 04 (near-nadir, 중반)
+
+GT RGB 참고:
+![GT RGB View 04](images/c/rgb_view04.png)
+
+Depth 비교:
+![Depth (c)](images/c/depth_view04.png)
+![Depth (d)](images/d/depth_view04.png)
+
+Normal 비교:
+![Normal (c)](images/c/normal_view04.png)
+![Normal (d)](images/d/normal_view04.png)
+
+Semantic 비교 — 지붕 영역에서 (d)의 분류가 (c)보다 불안정:
+![Semantic (c)](images/c/semantic_view04.png)
+![Semantic (d)](images/d/semantic_view04.png)
+
+### (c) vs (d) 비교 — View 08 (oblique, 후반)
+
+GT RGB 참고:
+![GT RGB View 08](images/c/rgb_view08.png)
+
+Normal 비교:
+![Normal (c)](images/c/normal_view08.png)
+![Normal (d)](images/d/normal_view08.png)
+
+Semantic 비교:
+![Semantic (c)](images/c/semantic_view08.png)
+![Semantic (d)](images/d/semantic_view08.png)
+
+### (f) Geo→Sem — Normal cos 최고 조건
+
+(f)는 Normal cos +0.0014로 가장 높은 법선 품질을 보여줌. View 00 법선:
+![Normal (f)](images/f/normal_view00.png)
+
+### 관찰 요약
 
 1. **Depth 맵**: 모든 조건에서 유사한 품질. MAE 차이가 0.002 범위로 시각적 구분 어려움.
 2. **Normal 맵**: (d) Joint와 (f) Geo→Sem에서 건물 벽면의 법선이 (c)보다 약간 더 균일 — L_mutual의 "벽=수직" prior 효과. 그러나 차이가 미세함.
 3. **Semantic 맵**: (c) Independent가 GT와 가장 유사. (d) Joint에서 roof-wall 경계 영역에서 일부 오분류 증가 — L_mutual이 기하학적으로 ambiguous한 경사면을 wall로 강제하는 경향.
 4. **3D PLY**: (d)의 class PLY에서 wall 프리미티브의 법선 일관성이 (c)보다 개선된 것이 확인됨. 그러나 roof 영역에서 wall로 오분류된 프리미티브가 관찰됨.
 
-### 렌더링 파일 경로
+### 전체 렌더링 파일
 
-- Depth/Normal 비교: `images/{c,d,f}/depth_view{00-08}.png`, `images/{c,d,f}/normal_view{00-08}.png`
-- Semantic 비교: `images/{c,d,e,f}/semantic_view{00-08}.png`
-- GT RGB 참고: `images/{a-g}/rgb_view{00-08}.png`
-- 3D Class PLY: `ply/{c,d,e,f}_class.ply`
+- Depth/Normal: `images/{a~g}/depth_view{00-08}.png`, `images/{a~g}/normal_view{00-08}.png`
+- Semantic: `images/{b~g}/semantic_view{00-08}.png`
+- GT RGB: `images/{a~g}/rgb_view{00-08}.png`
+- 3D PLY: `ply/{a~g}_normal.ply`, `ply/{b~g}_class.ply`
 
 ## Go/No-Go 판단
 
