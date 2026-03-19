@@ -1,0 +1,993 @@
+{
+  "method": "roof-seed BFS",
+  "mesh": "results/phase4/poisson/poisson_trimmed.ply",
+  "n_total_faces": 1123255,
+  "n_roof_components": 53,
+  "min_roof_faces": 100,
+  "min_building_faces": 500,
+  "n_buildings": 49,
+  "n_wall_assigned": 151854,
+  "n_wall_unassigned": 24078,
+  "buildings": [
+    {
+      "building_id": 0,
+      "n_faces": 21232,
+      "n_roof": 10889,
+      "n_wall": 10343,
+      "roof_ratio": 51.3,
+      "n_vertices": 11320,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -2.095719575881958,
+        -0.48210763931274414,
+        1.8461785316467285
+      ],
+      "bbox_extent": [
+        2.6004891395568848,
+        1.2947683334350586,
+        0.8206281661987305
+      ]
+    },
+    {
+      "building_id": 1,
+      "n_faces": 6378,
+      "n_roof": 4113,
+      "n_wall": 2265,
+      "roof_ratio": 64.5,
+      "n_vertices": 3366,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        0.663508415222168,
+        -0.33330297470092773,
+        1.3173291683197021
+      ],
+      "bbox_extent": [
+        0.9338893890380859,
+        0.7962274551391602,
+        0.6017937660217285
+      ]
+    },
+    {
+      "building_id": 2,
+      "n_faces": 9380,
+      "n_roof": 3351,
+      "n_wall": 6029,
+      "roof_ratio": 35.7,
+      "n_vertices": 5003,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -0.05273151397705078,
+        -0.6173233985900879,
+        1.6638166904449463
+      ],
+      "bbox_extent": [
+        1.2645092010498047,
+        0.7325582504272461,
+        0.5288491249084473
+      ]
+    },
+    {
+      "building_id": 3,
+      "n_faces": 5963,
+      "n_roof": 2923,
+      "n_wall": 3040,
+      "roof_ratio": 49.0,
+      "n_vertices": 3119,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -1.2896854877471924,
+        0.026010990142822266,
+        1.4908268451690674
+      ],
+      "bbox_extent": [
+        0.8206276893615723,
+        0.42400646209716797,
+        0.4318509101867676
+      ]
+    },
+    {
+      "building_id": 4,
+      "n_faces": 9783,
+      "n_roof": 2240,
+      "n_wall": 7543,
+      "roof_ratio": 22.9,
+      "n_vertices": 5398,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -4.426308631896973,
+        -0.6587944030761719,
+        2.02683162689209
+      ],
+      "bbox_extent": [
+        1.6230201721191406,
+        0.6998615264892578,
+        1.041910171508789
+      ]
+    },
+    {
+      "building_id": 5,
+      "n_faces": 18060,
+      "n_roof": 1296,
+      "n_wall": 16764,
+      "roof_ratio": 7.2,
+      "n_vertices": 9496,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        1.704662799835205,
+        -0.7100601196289062,
+        1.349797248840332
+      ],
+      "bbox_extent": [
+        1.7396669387817383,
+        1.4953670501708984,
+        1.5945568084716797
+      ]
+    },
+    {
+      "building_id": 6,
+      "n_faces": 4921,
+      "n_roof": 1091,
+      "n_wall": 3830,
+      "roof_ratio": 22.2,
+      "n_vertices": 2672,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -3.4050824642181396,
+        0.05585956573486328,
+        1.5807950496673584
+      ],
+      "bbox_extent": [
+        1.4041857719421387,
+        0.3282508850097656,
+        0.43958520889282227
+      ]
+    },
+    {
+      "building_id": 7,
+      "n_faces": 5845,
+      "n_roof": 915,
+      "n_wall": 4930,
+      "roof_ratio": 15.7,
+      "n_vertices": 3031,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        0.3022923469543457,
+        -0.15769720077514648,
+        1.0697412490844727
+      ],
+      "bbox_extent": [
+        0.6638784408569336,
+        0.6094751358032227,
+        0.5880317687988281
+      ]
+    },
+    {
+      "building_id": 8,
+      "n_faces": 3688,
+      "n_roof": 850,
+      "n_wall": 2838,
+      "roof_ratio": 23.0,
+      "n_vertices": 1980,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -6.286485433578491,
+        -0.19050359725952148,
+        1.840623378753662
+      ],
+      "bbox_extent": [
+        0.9973196983337402,
+        0.8209772109985352,
+        0.6493768692016602
+      ]
+    },
+    {
+      "building_id": 9,
+      "n_faces": 3720,
+      "n_roof": 847,
+      "n_wall": 2873,
+      "roof_ratio": 22.8,
+      "n_vertices": 2098,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        1.0718998908996582,
+        -1.3939166069030762,
+        2.1291344165802
+      ],
+      "bbox_extent": [
+        0.9482812881469727,
+        0.6382665634155273,
+        0.4795851707458496
+      ]
+    },
+    {
+      "building_id": 10,
+      "n_faces": 1408,
+      "n_roof": 730,
+      "n_wall": 678,
+      "roof_ratio": 51.8,
+      "n_vertices": 773,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -0.33228588104248047,
+        0.019387245178222656,
+        1.4544146060943604
+      ],
+      "bbox_extent": [
+        0.4011955261230469,
+        0.291778564453125,
+        0.25467824935913086
+      ]
+    },
+    {
+      "building_id": 11,
+      "n_faces": 5892,
+      "n_roof": 704,
+      "n_wall": 5188,
+      "roof_ratio": 11.9,
+      "n_vertices": 3096,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -5.724570035934448,
+        -0.09002971649169922,
+        1.8495619297027588
+      ],
+      "bbox_extent": [
+        0.9005579948425293,
+        0.58355712890625,
+        0.5950274467468262
+      ]
+    },
+    {
+      "building_id": 12,
+      "n_faces": 3029,
+      "n_roof": 669,
+      "n_wall": 2360,
+      "roof_ratio": 22.1,
+      "n_vertices": 1689,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        0.8074755668640137,
+        -0.0717935562133789,
+        1.351496696472168
+      ],
+      "bbox_extent": [
+        0.8571004867553711,
+        0.5106124877929688,
+        0.3875694274902344
+      ]
+    },
+    {
+      "building_id": 13,
+      "n_faces": 11243,
+      "n_roof": 639,
+      "n_wall": 10604,
+      "roof_ratio": 5.7,
+      "n_vertices": 5885,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        0.7424840927124023,
+        -1.9227662086486816,
+        2.4256389141082764
+      ],
+      "bbox_extent": [
+        1.5506591796875,
+        0.8206281661987305,
+        1.095879077911377
+      ]
+    },
+    {
+      "building_id": 14,
+      "n_faces": 8475,
+      "n_roof": 635,
+      "n_wall": 7840,
+      "roof_ratio": 7.5,
+      "n_vertices": 4447,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -4.712549448013306,
+        -0.18794631958007812,
+        1.8481922149658203
+      ],
+      "bbox_extent": [
+        0.4566349983215332,
+        0.8523349761962891,
+        0.7540454864501953
+      ]
+    },
+    {
+      "building_id": 15,
+      "n_faces": 675,
+      "n_roof": 603,
+      "n_wall": 72,
+      "roof_ratio": 89.3,
+      "n_vertices": 403,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -4.9825122356414795,
+        -0.9981856346130371,
+        2.4380273818969727
+      ],
+      "bbox_extent": [
+        0.47414064407348633,
+        0.1293191909790039,
+        0.25365257263183594
+      ]
+    },
+    {
+      "building_id": 16,
+      "n_faces": 3124,
+      "n_roof": 561,
+      "n_wall": 2563,
+      "roof_ratio": 18.0,
+      "n_vertices": 1676,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        0.3953118324279785,
+        -1.4212708473205566,
+        2.2217743396759033
+      ],
+      "bbox_extent": [
+        0.47783946990966797,
+        0.5106134414672852,
+        0.6620230674743652
+      ]
+    },
+    {
+      "building_id": 17,
+      "n_faces": 739,
+      "n_roof": 523,
+      "n_wall": 216,
+      "roof_ratio": 70.8,
+      "n_vertices": 424,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        0.7344584465026855,
+        -0.8470869064331055,
+        1.7276432514190674
+      ],
+      "bbox_extent": [
+        0.3463430404663086,
+        0.2375812530517578,
+        0.21883440017700195
+      ]
+    },
+    {
+      "building_id": 18,
+      "n_faces": 6391,
+      "n_roof": 519,
+      "n_wall": 5872,
+      "roof_ratio": 8.1,
+      "n_vertices": 3432,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -3.1680121421813965,
+        -0.33304500579833984,
+        1.7035510540008545
+      ],
+      "bbox_extent": [
+        0.7841558456420898,
+        0.7175579071044922,
+        0.959993839263916
+      ]
+    },
+    {
+      "building_id": 19,
+      "n_faces": 1672,
+      "n_roof": 492,
+      "n_wall": 1180,
+      "roof_ratio": 29.4,
+      "n_vertices": 943,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        0.3479728698730469,
+        -1.093019723892212,
+        2.0101356506347656
+      ],
+      "bbox_extent": [
+        0.6675434112548828,
+        0.510612964630127,
+        0.5291862487792969
+      ]
+    },
+    {
+      "building_id": 20,
+      "n_faces": 3362,
+      "n_roof": 490,
+      "n_wall": 2872,
+      "roof_ratio": 14.6,
+      "n_vertices": 1801,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -0.022270679473876953,
+        -0.13217592239379883,
+        1.4582407474517822
+      ],
+      "bbox_extent": [
+        0.6565027236938477,
+        0.594904899597168,
+        0.5188937187194824
+      ]
+    },
+    {
+      "building_id": 21,
+      "n_faces": 1088,
+      "n_roof": 437,
+      "n_wall": 651,
+      "roof_ratio": 40.2,
+      "n_vertices": 628,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -5.924394130706787,
+        -0.3909268379211426,
+        1.685392141342163
+      ],
+      "bbox_extent": [
+        0.3897256851196289,
+        0.38296031951904297,
+        0.28022146224975586
+      ]
+    },
+    {
+      "building_id": 22,
+      "n_faces": 2012,
+      "n_roof": 425,
+      "n_wall": 1587,
+      "roof_ratio": 21.1,
+      "n_vertices": 1114,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -2.183258295059204,
+        -0.0033063888549804688,
+        1.551664113998413
+      ],
+      "bbox_extent": [
+        0.5288491249084473,
+        0.43512725830078125,
+        0.3410172462463379
+      ]
+    },
+    {
+      "building_id": 23,
+      "n_faces": 910,
+      "n_roof": 390,
+      "n_wall": 520,
+      "roof_ratio": 42.9,
+      "n_vertices": 499,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -2.347383975982666,
+        -0.11543893814086914,
+        1.5534687042236328
+      ],
+      "bbox_extent": [
+        0.2735424041748047,
+        0.3061246871948242,
+        0.2170581817626953
+      ]
+    },
+    {
+      "building_id": 24,
+      "n_faces": 1595,
+      "n_roof": 353,
+      "n_wall": 1242,
+      "roof_ratio": 22.1,
+      "n_vertices": 876,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -0.004034519195556641,
+        -1.831585168838501,
+        2.2055869102478027
+      ],
+      "bbox_extent": [
+        0.36472415924072266,
+        0.4194321632385254,
+        0.3206453323364258
+      ]
+    },
+    {
+      "building_id": 25,
+      "n_faces": 1009,
+      "n_roof": 349,
+      "n_wall": 660,
+      "roof_ratio": 34.6,
+      "n_vertices": 574,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        0.061902523040771484,
+        -1.4577431678771973,
+        2.240487575531006
+      ],
+      "bbox_extent": [
+        0.42365360260009766,
+        0.5106134414672852,
+        0.29624080657958984
+      ]
+    },
+    {
+      "building_id": 26,
+      "n_faces": 3142,
+      "n_roof": 302,
+      "n_wall": 2840,
+      "roof_ratio": 9.6,
+      "n_vertices": 1694,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        1.6372218132019043,
+        -1.6683201789855957,
+        2.138962507247925
+      ],
+      "bbox_extent": [
+        0.5106134414672852,
+        0.6399879455566406,
+        0.5633111000061035
+      ]
+    },
+    {
+      "building_id": 27,
+      "n_faces": 1100,
+      "n_roof": 293,
+      "n_wall": 807,
+      "roof_ratio": 26.6,
+      "n_vertices": 614,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -0.09085559844970703,
+        -1.4667234420776367,
+        1.8552961349487305
+      ],
+      "bbox_extent": [
+        0.2275543212890625,
+        0.5650463104248047,
+        0.3282508850097656
+      ]
+    },
+    {
+      "building_id": 28,
+      "n_faces": 1150,
+      "n_roof": 288,
+      "n_wall": 862,
+      "roof_ratio": 25.0,
+      "n_vertices": 650,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -0.11345195770263672,
+        -1.5033340454101562,
+        2.143602132797241
+      ],
+      "bbox_extent": [
+        0.36472320556640625,
+        0.49237632751464844,
+        0.5401387214660645
+      ]
+    },
+    {
+      "building_id": 29,
+      "n_faces": 1247,
+      "n_roof": 278,
+      "n_wall": 969,
+      "roof_ratio": 22.3,
+      "n_vertices": 709,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        0.05669260025024414,
+        -1.047429084777832,
+        1.7458796501159668
+      ],
+      "bbox_extent": [
+        0.18505001068115234,
+        0.3100147247314453,
+        0.6929750442504883
+      ]
+    },
+    {
+      "building_id": 30,
+      "n_faces": 1934,
+      "n_roof": 262,
+      "n_wall": 1672,
+      "roof_ratio": 13.5,
+      "n_vertices": 1033,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        0.5977592468261719,
+        -0.07806396484375,
+        1.033491849899292
+      ],
+      "bbox_extent": [
+        0.4011955261230469,
+        0.31571006774902344,
+        0.4035487174987793
+      ]
+    },
+    {
+      "building_id": 31,
+      "n_faces": 2987,
+      "n_roof": 256,
+      "n_wall": 2731,
+      "roof_ratio": 8.6,
+      "n_vertices": 1681,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -4.203705072402954,
+        -0.08043432235717773,
+        1.7085983753204346
+      ],
+      "bbox_extent": [
+        0.3677067756652832,
+        0.45227909088134766,
+        0.6945929527282715
+      ]
+    },
+    {
+      "building_id": 32,
+      "n_faces": 1441,
+      "n_roof": 251,
+      "n_wall": 1190,
+      "roof_ratio": 17.4,
+      "n_vertices": 811,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -3.6239163875579834,
+        -0.31798219680786133,
+        1.8314213752746582
+      ],
+      "bbox_extent": [
+        0.455904483795166,
+        0.38296031951904297,
+        0.4587278366088867
+      ]
+    },
+    {
+      "building_id": 33,
+      "n_faces": 2950,
+      "n_roof": 245,
+      "n_wall": 2705,
+      "roof_ratio": 8.3,
+      "n_vertices": 1574,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -2.854717254638672,
+        0.0022439956665039062,
+        1.4497463703155518
+      ],
+      "bbox_extent": [
+        0.5222892761230469,
+        0.4354820251464844,
+        0.40990400314331055
+      ]
+    },
+    {
+      "building_id": 34,
+      "n_faces": 637,
+      "n_roof": 236,
+      "n_wall": 401,
+      "roof_ratio": 37.0,
+      "n_vertices": 389,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -1.672645092010498,
+        -0.13227224349975586,
+        1.7043659687042236
+      ],
+      "bbox_extent": [
+        0.4194326400756836,
+        0.20729351043701172,
+        0.13580751419067383
+      ]
+    },
+    {
+      "building_id": 35,
+      "n_faces": 961,
+      "n_roof": 220,
+      "n_wall": 741,
+      "roof_ratio": 22.9,
+      "n_vertices": 546,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -2.650775671005249,
+        -0.3862180709838867,
+        1.873532772064209
+      ],
+      "bbox_extent": [
+        0.27638864517211914,
+        0.2641258239746094,
+        0.32825183868408203
+      ]
+    },
+    {
+      "building_id": 36,
+      "n_faces": 7435,
+      "n_roof": 166,
+      "n_wall": 7269,
+      "roof_ratio": 2.2,
+      "n_vertices": 4008,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        1.9030156135559082,
+        -0.8274028301239014,
+        1.1103994846343994
+      ],
+      "bbox_extent": [
+        1.3285017013549805,
+        1.0380911827087402,
+        1.0600895881652832
+      ]
+    },
+    {
+      "building_id": 38,
+      "n_faces": 720,
+      "n_roof": 154,
+      "n_wall": 566,
+      "roof_ratio": 21.4,
+      "n_vertices": 420,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -2.693871259689331,
+        -0.7100601196289062,
+        2.024015188217163
+      ],
+      "bbox_extent": [
+        0.49237680435180664,
+        0.2553062438964844,
+        0.24612092971801758
+      ]
+    },
+    {
+      "building_id": 39,
+      "n_faces": 3075,
+      "n_roof": 153,
+      "n_wall": 2922,
+      "roof_ratio": 5.0,
+      "n_vertices": 1659,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -0.19695711135864258,
+        -1.1266918182373047,
+        1.2438371181488037
+      ],
+      "bbox_extent": [
+        0.6411504745483398,
+        0.5050125122070312,
+        0.4721379280090332
+      ]
+    },
+    {
+      "building_id": 40,
+      "n_faces": 875,
+      "n_roof": 144,
+      "n_wall": 731,
+      "roof_ratio": 16.5,
+      "n_vertices": 566,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        2.530794620513916,
+        -0.09914779663085938,
+        1.1532034873962402
+      ],
+      "bbox_extent": [
+        0.5470857620239258,
+        0.34648704528808594,
+        0.3100147247314453
+      ]
+    },
+    {
+      "building_id": 41,
+      "n_faces": 1539,
+      "n_roof": 143,
+      "n_wall": 1396,
+      "roof_ratio": 9.3,
+      "n_vertices": 841,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -0.049625396728515625,
+        -0.4963974952697754,
+        1.3538014888763428
+      ],
+      "bbox_extent": [
+        0.38295936584472656,
+        0.3385953903198242,
+        0.3100152015686035
+      ]
+    },
+    {
+      "building_id": 43,
+      "n_faces": 3014,
+      "n_roof": 134,
+      "n_wall": 2880,
+      "roof_ratio": 4.4,
+      "n_vertices": 1618,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -2.8306429386138916,
+        -0.36983585357666016,
+        1.525252103805542
+      ],
+      "bbox_extent": [
+        0.4376683235168457,
+        0.7055015563964844,
+        0.603487491607666
+      ]
+    },
+    {
+      "building_id": 45,
+      "n_faces": 991,
+      "n_roof": 128,
+      "n_wall": 863,
+      "roof_ratio": 12.9,
+      "n_vertices": 555,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -2.4503748416900635,
+        0.05938386917114258,
+        1.4951667785644531
+      ],
+      "bbox_extent": [
+        0.32286787033081055,
+        0.32120227813720703,
+        0.24637413024902344
+      ]
+    },
+    {
+      "building_id": 46,
+      "n_faces": 1735,
+      "n_roof": 121,
+      "n_wall": 1614,
+      "roof_ratio": 7.0,
+      "n_vertices": 938,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -4.199629783630371,
+        0.0011510848999023438,
+        1.6364624500274658
+      ],
+      "bbox_extent": [
+        0.31000804901123047,
+        0.4376678466796875,
+        0.47414064407348633
+      ]
+    },
+    {
+      "building_id": 47,
+      "n_faces": 1377,
+      "n_roof": 119,
+      "n_wall": 1258,
+      "roof_ratio": 8.6,
+      "n_vertices": 760,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        0.1806797981262207,
+        -0.3369626998901367,
+        1.1483819484710693
+      ],
+      "bbox_extent": [
+        0.4479970932006836,
+        0.27503204345703125,
+        0.35613012313842773
+      ]
+    },
+    {
+      "building_id": 48,
+      "n_faces": 2504,
+      "n_roof": 116,
+      "n_wall": 2388,
+      "roof_ratio": 4.6,
+      "n_vertices": 1346,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -6.195218086242676,
+        -0.00412750244140625,
+        1.8378124237060547
+      ],
+      "bbox_extent": [
+        0.7112112045288086,
+        0.4482250213623047,
+        0.5850620269775391
+      ]
+    },
+    {
+      "building_id": 50,
+      "n_faces": 5501,
+      "n_roof": 112,
+      "n_wall": 5389,
+      "roof_ratio": 2.0,
+      "n_vertices": 3026,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -5.37611198425293,
+        -0.4456353187561035,
+        2.0503997802734375
+      ],
+      "bbox_extent": [
+        0.8175840377807617,
+        0.8935728073120117,
+        0.7237701416015625
+      ]
+    },
+    {
+      "building_id": 51,
+      "n_faces": 1000,
+      "n_roof": 110,
+      "n_wall": 890,
+      "roof_ratio": 11.0,
+      "n_vertices": 553,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        0.2603898048400879,
+        -0.26481008529663086,
+        1.3947091102600098
+      ],
+      "bbox_extent": [
+        0.34648799896240234,
+        0.2910604476928711,
+        0.29405689239501953
+      ]
+    },
+    {
+      "building_id": 52,
+      "n_faces": 3451,
+      "n_roof": 103,
+      "n_wall": 3348,
+      "roof_ratio": 3.0,
+      "n_vertices": 1847,
+      "is_watertight": false,
+      "is_edge_manifold": true,
+      "bbox_center": [
+        -3.8119022846221924,
+        -0.5321750640869141,
+        1.7649083137512207
+      ],
+      "bbox_extent": [
+        0.6634907722473145,
+        0.5933837890625,
+        0.6216154098510742
+      ]
+    }
+  ]
+}

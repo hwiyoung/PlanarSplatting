@@ -1,252 +1,296 @@
-# 실험 계획 (v2 — 지도교수 피드백 반영)
+# 실험계획 (v3)
 
-## 이 문서의 역할
-이 문서는 Claude Code가 자동으로 읽지 않는다 (자동으로 읽히는 것은 CLAUDE.md뿐).
-각 Phase의 프롬프트를 Claude Code 채팅창에 복붙하여 사용한다.
+## 현재 상태
 
-## 연구 방향 조정 요약 (2026-03-11)
-지도교수 피드백에 따라 연구의 무게 중심을 조정:
-- **L_photo를 기본 설정에 포함**: 최종 재구축 품질 최대화. L_photo 미포함 조건은 유지하지 않음.
-- **Phase 4(CityGML 변환)를 최우선**: Phase 4까지 끝까지 가보는 것이 핵심.
-- **L_mutual은 파이프라인의 한 구성요소**: 효과와 한계를 분석하는 대상.
-- **City3D 비교 추가**: splatting 기반 접근의 장점 실증.
-- **기존 Phase 3-B**: L_photo 미포함 예비 분석. 경로 1/2 진단은 재실험 설계 근거로 유지.
-- **Ground class**: 지면(terrain), CityGML GroundSurface(건물 바닥면)와 구별. Context class.
-상세: docs/ADVISOR_FEEDBACK_RESPONSE.md
+| Phase | 상태 | 비고 |
+|-------|------|------|
+| Phase 0~2-C | 완료 | 유효 |
+| Phase 3-A | 완료 | L_mutual 구현 검증 |
+| Phase 3-B | 완료 | L_photo 미포함 + gravity 미보정. **예비 분석** |
+| Phase 3-B' L_photo | 완료 | **L_photo 구현 완료. gravity 미보정.** |
+| Phase 4 프로토타입 | 진행 중 | Cluster-Intersection 구현. wall 법선 문제, gravity 보정 발견 |
 
-## Phase 의존성 (조정 후)
+**재시작: Phase 3-B'-Step1 gravity 보정부터.**
+
+## 실험 순서
 
 ```
-Phase 0-Setup → ... → Phase 3-B (예비, 완료)
-                                     ↓
-                              Phase 3-B'-Step1 (L_photo 구현 + (c') baseline)
-                                     ↓
-                          ┌──────────┴──────────┐
-                          ↓                     ↓
-                   Phase 4 프로토타입     Phase 3-B'-Step2
-                   ((c') checkpoint →     (L_mutual 재실험)
-                    CityGML + mesh 보정)        ↓
-                          ↓              City3D 비교
-                   Phase 4 고도화 ←──────┘
+Step1: Gravity 보정 + baseline 재학습
+  ↓
+Step2: L_mutual 재실험
+  ↓
+Step3: CityGML 전제 조건 판정 (Stage 2 실제 품질 수치 측정)
+  ↓ (병행)
+Phase 4-Sensitivity: 합성 데이터 입력 민감도 분석
+  ↓
+Phase 4-Real: CityGML 생성 + val3dity
+  ↓
+City3D 비교
 ```
-
-## 데이터셋 / 비교 방법 / 평가 지표
-
-| 데이터셋 | 용도 | 비고 |
-|----------|------|------|
-| 성수동 드론 이미지 | 주요 실험 | 180장, oblique, 70m, COLMAP 100장 |
-| UrbanScene3D | 향후 일반화 | GT 메쉬 포함 |
-
-| 비교 방법 | 목적 | 시점 |
-|----------|------|------|
-| City3D | 순차적 파이프라인 vs splatting | 2순위 |
-| PlanarSplatting 원본 | 의미론 통합 효과 | Phase 1 결과 활용 |
-| (c') vs (d') ablation | L_mutual 효과 (L_photo 포함) | 1순위 |
-
-| 범주 | 지표 | 선정 이유 | 관련 연구 |
-|------|------|----------|----------|
-| 기하학 | Depth MAE | 프리미티브 위치 정확도 | PlanarSplatting, PGSR, 2DGS |
-| 기하학 | Normal cos | 법선 정확도; CityGML 분류가 면 방향에 의존 | PlanarSplatting, PGSR, 2DGS |
-| 의미론 | mIoU / per-class IoU | 구성요소 분류; class별 편향 식별 | AlignGS, NeRBuilder |
-| 진단 | Wall 법선 정확도 | L_mutual 핵심 메커니즘 검증 | 본 연구 고유 |
-| 렌더링 | PSNR | RGB 품질 (L_photo 포함 후) | 3DGS, PGSR |
-| 실용 | val3dity 통과율 | CityGML 유효성 | PLANES4LOD2 |
-| 실용 | 처리 시간 | City3D 비교용 | |
 
 ---
 
-## 완료된 Phase 요약 (Phase 0 ~ Phase 3-B)
-
-Phase 0-Setup ~ Phase 3-A: 기존대로 수행 완료. 각 REPORT.md 참조.
-
-### Phase 3-B 결과 (완료, 예비 분석으로 재위치)
-- (c) Independent: Normal cos=0.7816, mIoU=0.7859
-- (d) Joint: Normal cos +0.0008, mIoU **-0.0134**
-- 양방향 시너지 미입증. 경로 1(cross-view contamination) / 경로 2(직접 충돌) 진단.
-- L_photo 미포함 상태의 결과이므로, L_photo 포함 시 유효성 보장 불가. 경로 분석 논리는 유지.
-
----
-
-## 1순위: Phase 3-B' + Phase 4 프로토타입 (병행)
-
-### Phase 3-B'-Step1: L_photo 구현 및 baseline 확립
-
-**목표**: L_photo를 PlanarSplatting에 추가, L_photo 포함 baseline 확립.
-
-**사전 확인**: color=random(비학습), CUDA rasterizer NUM_CHANNELS=4 (semantic용). L_photo를 위해 color를 학습 파라미터로 변경하고, RGB 렌더링 경로를 확보해야 함.
+## Phase 3-B'-Step1: Gravity 보정 + Baseline 재학습
 
 **프롬프트:**
 ```
 docs/EXPERIMENT_PLAN.md의 Phase 3-B'-Step1을 진행해줘. 컨테이너 내부에서 작업이야.
-docs/RESEARCH_CONTEXT.md와 docs/ADVISOR_FEEDBACK_RESPONSE.md도 참고해줘.
 
-목표: PlanarSplatting에 L_photo를 추가하고 baseline 확립.
+목표: gravity 보정 + L_photo 포함 baseline 재학습.
+L_photo 구현은 이미 완료. gravity 보정만 추가.
 
-Step 1: L_photo 구현 가능성 분석
-- 현재 color 처리 방식 확인 (random 생성, 비학습)
-- CUDA rasterizer RGB 렌더링 경로 확인 (NUM_CHANNELS, forward.cu)
-- Phase 2-B의 color gradient backward가 L_photo에 활용 가능한지 확인
-- semantic 렌더링(f_i, 4ch)과 RGB 렌더링(color, 3ch) 동시 수행 방안 검토:
-  방안 A: 렌더링 2회 (semantic용 + RGB용)
-  방안 B: 채널 확장 (4ch semantic + 3ch RGB = 7ch)
-  방안 C: 기타 (코드 구조에 따라)
-- 각 방안 장단점 분석 후 선택
+=== Part A: Gravity 보정 ===
+1. loss_util.py에서 e_gravity 값 찾기
+2. hardcoded → 데이터 자동 추정으로 변경:
+   - 학습 시작 시 terrain class(class=3) 프리미티브 법선 평균 계산
+   - gravity = -(terrain 법선 평균), normalize
+   - 학습 중 고정
+   - fallback: terrain 부족 시 [0,-1,0] + 경고
+3. 추정 gravity를 TensorBoard + 콘솔 로깅
+4. 검증: roof/terrain 법선과 gravity 정렬도(dot>0.7 비율) 출력
 
-Step 2: L_photo 구현
-- color를 학습 파라미터 (N,3)로 추가. SfM 포인트 색상으로 초기화.
-- L_photo = (1-0.2)*L1(rendered_rgb, gt_rgb) + 0.2*(1-SSIM(rendered_rgb, gt_rgb))
-- --enable_photo --lambda_photo 플래그
-- density control에서 color split/prune 동기
-- enable_semantic과 enable_photo 독립 on/off
+=== Part B: Baseline 재학습 ===
+(c') Independent+Photo: L_d + L_n + L_geo + L_sem + L_photo (λ_m=0)
+- gravity: Part A 추정값, 5000 iter
+- 평가: Depth MAE, Normal cos, mIoU, per-class IoU, PSNR
+- CityGML 전제: wall 법선 수직도(gravity 수직 10도 이내), roof 법선 정렬도
 
-Step 3: (c') Independent+Photo 학습
-- L_depth + L_normal + L_geo + L_sem + L_photo (λ_m=0), 5000 iter
-- 평가: Depth MAE, Normal cos, mIoU, PSNR
+=== Part C: 비교 ===
+(c') gravity 보정 vs 기존 gravity 미보정: 효과 분리
+wall 법선 수직도 변화에 주목
 
-Step 4: (c') vs (c) 비교 — L_photo 추가 효과
+=== 시각적 산출물 (필수) ===
+1. 프리미티브 PLY: class별 색상 (roof=red, wall=blue, terrain=gray)
+2. 프리미티브 PLY: 법선 방향 색상 (gravity 수직 10도 이내=green, 초과=red)
+3. 렌더링 이미지: Depth/Normal/Semantic/RGB 각 4장 (다양한 뷰)
+4. gravity 방향 시각화: 좌표축 + gravity 벡터를 PLY에 오버레이
 
-results/phase3b_prime/step1_REPORT.md 작성. CLAUDE.md 업데이트.
+results/phase3b_prime/step1_gravity_REPORT.md 작성 (하단 REPORT 템플릿 준수).
+CLAUDE.md 업데이트.
 ```
 
-### Phase 3-B'-Step2: L_mutual 재실험 (L_photo 포함)
+---
 
-**목표**: L_photo 포함 baseline에서 L_mutual 효과 재검증.
-
-**선행**: Step1 완료
+## Phase 3-B'-Step2: L_mutual 재실험
 
 **프롬프트:**
 ```
 docs/EXPERIMENT_PLAN.md의 Phase 3-B'-Step2를 진행해줘. 컨테이너 내부에서 작업이야.
 
-목표: L_photo 포함 상태에서 L_mutual 효과 재검증.
+목표: gravity 보정 + L_photo 상태에서 L_mutual 효과 재검증.
 
-실험 (모두 L_photo 포함):
-- (c') Independent+Photo: Step1에서 완료 (재사용)
+=== 실험 조건 (모두 L_photo + gravity 보정) ===
+- (c'): Step1 완료 (재사용)
 - (d') Joint+Photo: + L_mutual full, warmup
-- (d'-masked): L_mutual을 GT가 있는 영역 프리미티브에만 적용
+- (d'-masked): L_mutual을 GT 있는 영역 프리미티브에만
 - (d'-small): λ_m = 0.01
 
-평가: Depth MAE, Normal cos, mIoU, per-class IoU, PSNR, wall 법선 정확도
+=== 평가 ===
+기본: Depth MAE, Normal cos, mIoU, per-class IoU, PSNR
+CityGML 전제: wall 법선 수직도, roof 법선 정렬도, roof-wall 혼동률
 
-해석:
-- (d') vs (c'): L_photo 포함 시 L_mutual 효과
+=== 해석 ===
+- (d') vs (c'): L_mutual → wall 법선 수직도 개선?
 - (d'-masked) vs (c'): 경로 1 제거 효과
-- (d'-small) vs (c'): gradient 크기 진단
-- Phase 3-B(예비) vs Phase 3-B'(본실험) 비교
+- Phase 3-B(gravity 미보정) vs 3-B'(보정): gravity 보정이 L_mutual에 미치는 영향
 
-results/phase3b_prime/step2_REPORT.md 작성. CLAUDE.md 업데이트.
-```
+=== 시각적 산출물 (필수) ===
+1. 조건별 프리미티브 PLY: class별 색상 (c', d', d'-masked, d'-small)
+2. 조건별 wall 법선 수직도 히스토그램 (gravity 대비 각도 분포)
+3. (c') vs (d') 동일 뷰 렌더링 비교: Normal/Semantic side-by-side
+4. Phase 3-B(예비) vs Phase 3-B'(본실험) 비교 표 + 막대그래프
 
-### Phase 4 프로토타입: CityGML 변환 + mesh 기반 위상 보정
-
-**목표**: 프리미티브 → CityGML LOD2 + val3dity. TSDF mesh로 토폴로지 보정. Phase 4까지 끝까지 가보는 것이 핵심.
-
-**선행**: Phase 3-B'-Step1 완료. (c') Independent+Photo checkpoint 사용.
-
-**프롬프트:**
-```
-docs/EXPERIMENT_PLAN.md의 Phase 4 프로토타입을 진행해줘. 컨테이너 내부에서 작업이야.
-docs/ADVISOR_FEEDBACK_RESPONSE.md의 Q3, 2절도 참고해줘.
-
-목표: 프리미티브 → CityGML LOD2 + val3dity. (c') Independent+Photo checkpoint 사용.
-Checkpoint: planarSplat_ExpRes/phase3b_prime/cprime_independent_photo_example/2026_03_11_14_06_52/checkpoints/Parameters/latest.pth
-
-중요 — Ground class:
-- "ground" = 실제 지면(terrain). CityGML GroundSurface(건물 바닥면)와 다름.
-- Ground 프리미티브 → CityGML에 포함 안 함. 건물/비건물 분리용 context class.
-- GroundSurface = roof 경계를 지면 높이로 투영하여 별도 생성.
-
-Part 1: 프리미티브 분석
-scripts/analyze_primitives.py:
-1. Checkpoint에서 추출 (center, normal, radii, semantic logits)
-2. argmax(softmax(f_i)) → roof/wall/ground/bg
-3. 통계: class별 수, 법선 분포, 높이 분포
-4. Ground/BG 필터링 → 건물 프리미티브(roof+wall) 추출
-5. 시각화: class별 PLY
-
-Part 2: Building Instance 분리
-scripts/building_grouping.py:
-1. Roof 중심 → XZ 투영
-2. Distance threshold connected component → building_id
-3. Wall → 최근접 roof cluster 귀속
-4. 시각화: building_id별 PLY
-
-Part 3: TSDF Mesh 추출 + 위상 분석
-1. refuse_mesh()로 TSDF mesh 추출
-2. Watertight 확인 (trimesh: is_watertight, holes)
-3. 프리미티브-mesh 대응: vertex→프리미티브 매핑, 미커버 영역(틈) 식별
-4. 위상 문제 진단: 틈의 위치/크기/빈도
-
-Part 4: CityGML 변환
-scripts/export_citygml.py (per-building):
-1. 프리미티브 병합: 같은 class + cos(normal)>0.95 + 중심거리<2*r_i
-2. 경계 다각형 (alpha shape / convex hull)
-3. GroundSurface: roof 경계를 ground 프리미티브 평균 높이로 투영
-4. CityGML XML + OBJ 생성
-
-Part 5: val3dity 검증 + 오류 분류
-
-Part 6: Mesh 기반 위상 보정 (프로토타입)
-- Part 3 결과 기반: 틈 영역에서 mesh 정보로 프리미티브 경계 확장
-- 보정 후 CityGML 재생성 + val3dity 재검증
-
-results/phase4/REPORT.md 작성. CLAUDE.md 업데이트.
+results/phase3b_prime/step2_REPORT.md 작성.
+CLAUDE.md 업데이트.
 ```
 
 ---
 
-## 2순위: City3D 비교
+## Phase 3-B'-Step3: CityGML 전제 조건 판정
+
+**프롬프트:**
+```
+docs/EXPERIMENT_PLAN.md의 Phase 3-B'-Step3을 진행해줘. 컨테이너 내부에서 작업이야.
+
+목표: Phase 3 최선 조건이 Stage 3에 충분한지 판정 + 실제 품질 수치 측정.
+
+=== 판정 기준 ===
+1. Wall 법선 수직도 ≥ 80% (gravity 수직 10도 이내)
+2. Roof 법선 정렬도 ≥ 90%
+3. mIoU ≥ 0.80
+4. Roof-Wall 혼동률 < 10%
+5. 건물 표면 프리미티브 커버리지: 시각적 확인
+
+=== 작업 ===
+1. Step2 모든 조건에서 5개 기준 측정 → 충족 표
+2. 최선 조건 선정
+3. 미충족 기준 원인 분석
+4. Phase 4-Sensitivity용 실제 품질 수치:
+   - wall 법선의 gravity 수직 편차 분산 (σ_normal)
+   - 분류 오류율 (전체 + class별)
+   - 면 누락률 추정 (가능하면)
+
+=== 시각적 산출물 (필수) ===
+1. 판정 기준 충족 표 (조건 × 기준, 색상 코딩: 초록=충족, 빨강=미충족)
+2. 최선 조건의 3D 시각화: building별 색상 PLY
+3. 커버리지 시각화: 건물 표면에 프리미티브가 없는 영역 하이라이트
+4. wall 법선 분포 히스토그램 (σ_normal 표시)
+
+results/phase3b_prime/step3_REPORT.md 작성.
+CLAUDE.md 업데이트.
+```
+
+---
+
+## Phase 4-Sensitivity: 합성 데이터 입력 민감도 분석
+
+**프레이밍**: "강건성 벤치마크"가 아니라 "입력 민감도 분석". 상대적 민감도가 핵심.
+
+**프롬프트:**
+```
+docs/EXPERIMENT_PLAN.md의 Phase 4-Sensitivity를 진행해줘. 컨테이너 내부에서 작업이야.
+
+목표: Stage 3 알고리즘의 입력 민감도 분석.
+어떤 유형의 입력 오류가 CityGML 품질에 가장 큰 영향을 미치는가?
+
+=== Part A: 합성 데이터 생성 ===
+scripts/generate_synthetic_buildings.py:
+- box (6면), gable roof (7면), L자형 (10면)
+- 이상적 프리미티브 → noise=0 → Stage 3 → val3dity 통과 확인
+
+=== Part B: 노이즈 부여 ===
+scripts/add_noise_to_primitives.py:
+
+Step3에서 측정된 실제 품질에서 역산:
+- σ_real(wall 법선 분산) → 노이즈: 0.5σ, σ, 1.5σ, 2σ
+- e_real(분류 오류율) → 노이즈: 0.5e, e, 1.5e, 2e
+- 측정 전이면 임시: 법선 5°,10°,15°,20° / 분류 5%,10%,15%,20%
+
+노이즈 유형 (각각 독립):
+1. 법선 노이즈: Gaussian 회전
+2. 위치 노이즈: center 변위 (0.1m, 0.3m, 0.5m, 1.0m)
+3. 분류 오류: class 랜덤 교체
+4. 면 누락: 프리미티브 랜덤 제거 (10%, 20%, 30%, 50%)
+
+=== Part C: Stage 3 실행 + 평가 ===
+각 조건: val3dity 통과율, 오류 유형 분포
+
+=== Part D: 분석 ===
+1. 민감도 순위: 어떤 오류 유형이 가장 큰 영향?
+2. Phase 3 실제 출력이 어느 노이즈 수준에 해당 → Stage 3 예상 결과
+3. Stage 2 개선 우선순위 도출
+
+=== 시각적 산출물 (필수) ===
+1. noise=0 합성 건물 시각화: 프리미티브 + CityGML 결과 side-by-side
+2. 노이즈 유형별 val3dity 통과율 그래프 (x=노이즈 수준, y=통과율, 4개 선)
+3. 노이즈 유형별 대표 CityGML 결과 시각화 (정상 vs 오류 비교)
+4. Phase 3 실제 품질 위치를 그래프에 세로선으로 표시
+5. 민감도 순위 막대그래프
+
+results/phase4_sensitivity/REPORT.md 작성.
+CLAUDE.md 업데이트.
+```
+
+---
+
+## Phase 4-Real: CityGML 생성
+
+**프롬프트:**
+```
+docs/EXPERIMENT_PLAN.md의 Phase 4-Real을 진행해줘. 컨테이너 내부에서 작업이야.
+
+목표: Phase 3 최선 조건 → CityGML LOD2 + val3dity.
+
+입력: Step3 최선 조건 checkpoint. Gravity 보정값.
+Terrain: CityGML 미포함. GroundSurface = roof 경계를 terrain 높이로 투영.
+
+Stage 3 실행 → val3dity → Sensitivity 예측 비교 → 시각화.
+
+=== 시각적 산출물 (필수) ===
+1. CityGML 모델 3D 시각화: class별 색상 (roof=red, wall=blue, ground=green)
+2. val3dity 결과 시각화: 오류 위치를 모델 위에 하이라이트
+3. 건물별 품질 표: building_id, 면 수, val3dity 결과, 주요 오류
+4. 입력 이미지 → 프리미티브 → CityGML 3단계 비교 이미지
+5. Phase 4-Sensitivity 예측 vs 실제 결과 비교 표
+
+results/phase4_real/REPORT.md 작성.
+CLAUDE.md 업데이트.
+```
+
+---
+
+## City3D 비교
 
 **프롬프트:**
 ```
 docs/EXPERIMENT_PLAN.md의 City3D 비교를 진행해줘. 컨테이너 내부에서 작업이야.
 
-1. City3D 설치 (https://github.com/tudelft3d/City3D)
-2. COLMAP dense cloud → City3D 입력 변환
-3. 성수동 데이터에서 City3D 실행
-4. 비교: 기하학적 정확도, 의미론(사후 휴리스틱 vs 통합 학습), val3dity, 처리 시간
-5. 동일 건물 시각적 비교
+1. City3D 설치 + COLMAP dense cloud → City3D 입력
+2. 성수동 데이터에서 City3D 실행
+3. City3D도 val3dity 검증
+4. 비교: val3dity, 의미론, 기하학, 처리 시간
+
+=== 시각적 산출물 (필수) ===
+1. 동일 건물 side-by-side: City3D vs 제안 방법 (3D 모델, class 색상)
+2. val3dity 통과율 비교 막대그래프
+3. 처리 시간 비교 표
+4. 의미론 분류 비교: City3D 사후 휴리스틱 vs 제안 방법 (오분류 하이라이트)
 
 results/comparison_city3d/REPORT.md 작성.
 ```
 
 ---
 
-## 3순위: 확장 및 보완
+## REPORT.md 템플릿
 
-- Mesh 토폴로지 보정 고도화
-- L_mutual 확장 (Phase 3-B' 결과 따라): L_height, confidence-aware 등
-- 추가 데이터셋 (UrbanScene3D) 일반화 검증
-
----
-
-## 결과 기록 REPORT.md 템플릿
+각 Phase/Step 완료 시 해당 디렉토리에 REPORT.md를 생성한다. 하나의 파일에 누적하지 않고 Phase마다 독립 파일.
 
 ```markdown
-# Phase X: [이름]
+# [Phase/Step 이름] 결과 보고
 
-## 수행 일시 / 수행 작업 요약
+## 수행 일시
+YYYY-MM-DD
+
+## 수행 작업 요약
+<!-- 1. 이 단계가 전체 연구에서 어디에 위치하는지 1문단 서술
+     2. 이전 단계에서 확보한 전제조건
+     3. 이 단계에서 검증하려는 것
+     4. CityGML 품질 기준과의 연결 -->
 
 ## 정량 지표
+<!-- Phase 간 비교 시 GT 기준이 다르면 명시. 변화의 원인 1-2문장 해석. -->
 | 지표 | 값 | 이전 | 변화 | GT 기준 |
+|------|-----|------|------|---------|
+
+### CityGML 전제 조건 (해당 시)
+| 기준 | 목표 | 실측 | 충족 |
+|------|------|------|------|
 
 ## 정성적 결과
-<!-- 작성 기준:
-- 구체적 뷰/이미지를 언급하며 관찰 내용을 서술 (파일 경로 나열 금지)
-- 각 이미지에 대해: 무엇이 보이는지, 어떤 의미인지, 이전 Phase와 달라진 점
-- 카테고리별 (RGB, Depth, Normal, Semantic) 분류하여 작성
-- 8~9장 이상, results/phaseX/images/ 저장 -->
+<!-- 8-9장 이상. 선별 기준: 건물 다양(고층/저층, flat/경사 roof), 카메라 다양.
+     각 이미지에 구체적 캡션: 어떤 구조물인지, 어떤 결과인지, 이전과 달라진 점.
+     이미지는 results/[phase]/images/에 저장, 상대 경로 참조. -->
 
-## 3D PLY 시각화
-<!-- 필수 산출물 (Phase 2-B 이후):
-- *_normal.ply: 법선 색상
-- *_class.ply: 클래스 색상 (roof=red, wall=blue, ground=gray)
-- *_rgb.ply: 학습된 RGB 색상 (enable_photo 시)
-각 PLY에 대해 관찰 내용 1~2문장 서술 -->
+### 시각적 산출물 체크리스트
+<!-- 프롬프트에 명시된 시각적 산출물이 모두 생성되었는지 체크 -->
+- [ ] 산출물 1: ...
+- [ ] 산출물 2: ...
 
-## Go/No-Go
+## Go/No-Go 판단
+<!-- 숫자 기준 충족 + 다음 단계 전제조건 만족 논증.
+     불합격 시 Retry/Switch 경로와 근거. -->
+- [ ] Go / [ ] Retry / [ ] Switch
+- 근거: ...
 
 ## 생성/수정 파일 목록
+| 파일 | 유형 | 핵심 변경 |
+|------|------|----------|
 
-## 이슈 및 해결 / 다음 Phase
+## 이슈 및 해결
+
+## 다음 단계
+<!-- 이 결과가 다음 단계에 어떤 전제를 제공하는지 -->
 ```
+
+※ 이미지는 `results/[phase]/images/`에 저장, 상대 경로 참조.
+※ 시각적 산출물은 프롬프트에 명시된 항목을 반드시 모두 생성.

@@ -16,4 +16,5 @@ tools/sync_viewer_assets/three.min.js
 # Results: keep text (REPORT, JSON, CSV), exclude binary (PLY, images, logs)
 results/**/*.ply
 results/**/*.png
+results/**/*.npz
 results/**/run_log.txt
