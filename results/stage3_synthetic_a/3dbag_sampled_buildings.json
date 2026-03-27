@@ -1,0 +1,3803 @@
+[
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2129,
+    "name": "NL.IMBAG.Pand.0363100012251815",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2129/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 485,
+    "name": "NL.IMBAG.Pand.0363100012170064",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b485/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 614,
+    "name": "NL.IMBAG.Pand.0363100012214958",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b614/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 130,
+    "name": "NL.IMBAG.Pand.0603100000006577",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b130/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 18,
+    "name": "NL.IMBAG.Pand.0603100000005054",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b018/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2873,
+    "name": "NL.IMBAG.Pand.0363100012252731",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2873/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1493,
+    "name": "NL.IMBAG.Pand.0363100012168867",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1493/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 142,
+    "name": "NL.IMBAG.Pand.0603100000006598",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b142/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 152,
+    "name": "NL.IMBAG.Pand.0603100000006613",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b152/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 821,
+    "name": "NL.IMBAG.Pand.0363100012168982",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b821/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1419,
+    "name": "NL.IMBAG.Pand.0363100012233799",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1419/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 195,
+    "name": "NL.IMBAG.Pand.0603100000006698",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b195/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 137,
+    "name": "NL.IMBAG.Pand.0603100000006593",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b137/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1867,
+    "name": "NL.IMBAG.Pand.0363100012174672",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1867/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 200,
+    "name": "NL.IMBAG.Pand.0603100000006703",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b200/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 174,
+    "name": "NL.IMBAG.Pand.0603100000006644",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b174/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1219,
+    "name": "NL.IMBAG.Pand.0363100012174206",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1219/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 108,
+    "name": "NL.IMBAG.Pand.0603100000006530",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b108/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1932,
+    "name": "NL.IMBAG.Pand.0363100012176241",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1932/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1453,
+    "name": "NL.IMBAG.Pand.0363100100092556",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1453/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 14,
+    "name": "NL.IMBAG.Pand.0603100000005050",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b014/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 500,
+    "name": "NL.IMBAG.Pand.0363100012173763",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b500/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 104,
+    "name": "NL.IMBAG.Pand.0603100000006526",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b104/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2036,
+    "name": "NL.IMBAG.Pand.0363100012177147",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2036/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1418,
+    "name": "NL.IMBAG.Pand.0363100012229187",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1418/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1362,
+    "name": "NL.IMBAG.Pand.0363100012174720",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1362/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1934,
+    "name": "NL.IMBAG.Pand.0363100012176243",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1934/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1437,
+    "name": "NL.IMBAG.Pand.0363100012245310",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1437/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 15,
+    "name": "NL.IMBAG.Pand.0603100000005051",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b015/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 68,
+    "name": "NL.IMBAG.Pand.0603100000005587",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b068/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 237,
+    "name": "NL.IMBAG.Pand.0363100012162375",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b237/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 530,
+    "name": "NL.IMBAG.Pand.0363100012173812",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b530/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1210,
+    "name": "NL.IMBAG.Pand.0363100012174197",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1210/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1706,
+    "name": "NL.IMBAG.Pand.0363100012172222",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1706/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 106,
+    "name": "NL.IMBAG.Pand.0603100000006528",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b106/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2697,
+    "name": "NL.IMBAG.Pand.0363100012176737",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2697/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 72,
+    "name": "NL.IMBAG.Pand.0603100000005750",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b072/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 74,
+    "name": "NL.IMBAG.Pand.0603100000005752",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b074/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 136,
+    "name": "NL.IMBAG.Pand.0603100000006592",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b136/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1707,
+    "name": "NL.IMBAG.Pand.0363100012172223",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1707/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1877,
+    "name": "NL.IMBAG.Pand.0363100012174757",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1877/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 229,
+    "name": "NL.IMBAG.Pand.0603100000006778",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b229/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 666,
+    "name": "NL.IMBAG.Pand.0363100012243757",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b666/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 602,
+    "name": "NL.IMBAG.Pand.0363100012188285",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b602/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 6,
+    "name": "NL.IMBAG.Pand.0603100000004023",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b006/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 227,
+    "name": "NL.IMBAG.Pand.0603100000006776",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b227/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 613,
+    "name": "NL.IMBAG.Pand.0363100012214518",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b613/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 538,
+    "name": "NL.IMBAG.Pand.0363100012173826",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b538/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 99,
+    "name": "NL.IMBAG.Pand.0603100000006521",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b099/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1982,
+    "name": "NL.IMBAG.Pand.0363100012176465",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1982/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2872,
+    "name": "NL.IMBAG.Pand.0363100012249759",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2872/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 146,
+    "name": "NL.IMBAG.Pand.0603100000006604",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b146/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 145,
+    "name": "NL.IMBAG.Pand.0363100012157801",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b145/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 16,
+    "name": "NL.IMBAG.Pand.0603100000005052",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b016/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1,
+    "name": "NL.IMBAG.Pand.0603100000003946",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b001/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1686,
+    "name": "NL.IMBAG.Pand.0363100012172157",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1686/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 77,
+    "name": "NL.IMBAG.Pand.0603100000005755",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b077/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2410,
+    "name": "NL.IMBAG.Pand.0363100012173604",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2410/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 144,
+    "name": "NL.IMBAG.Pand.0603100000006602",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b144/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2310,
+    "name": "NL.IMBAG.Pand.0363100012172163",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2310/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 141,
+    "name": "NL.IMBAG.Pand.0603100000006597",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b141/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2320,
+    "name": "NL.IMBAG.Pand.0363100012172175",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2320/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 615,
+    "name": "NL.IMBAG.Pand.0363100012216872",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b615/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 353,
+    "name": "NL.IMBAG.Pand.0363100012167261",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b353/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 620,
+    "name": "NL.IMBAG.Pand.0363100012226207",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b620/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 3,
+    "name": "NL.IMBAG.Pand.0603100000004020",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b003/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 790,
+    "name": "NL.IMBAG.Pand.0363100012168949",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b790/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 203,
+    "name": "NL.IMBAG.Pand.0603100000006706",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b203/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1992,
+    "name": "NL.IMBAG.Pand.0363100012176475",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1992/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 73,
+    "name": "NL.IMBAG.Pand.0603100000005751",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b073/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 943,
+    "name": "NL.IMBAG.Pand.0363100012169888",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b943/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 17,
+    "name": "NL.IMBAG.Pand.0603100000005053",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b017/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 134,
+    "name": "NL.IMBAG.Pand.0603100000006590",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b134/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 762,
+    "name": "NL.IMBAG.Pand.0363100012168920",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b762/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2,
+    "name": "NL.IMBAG.Pand.0603100000004019",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b002/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2833,
+    "name": "NL.IMBAG.Pand.0363100012177473",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2833/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 605,
+    "name": "NL.IMBAG.Pand.0363100012198301",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b605/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 76,
+    "name": "NL.IMBAG.Pand.0603100000005754",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b076/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2468,
+    "name": "NL.IMBAG.Pand.0363100012173900",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2468/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2790,
+    "name": "NL.IMBAG.Pand.0363100012177240",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2790/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 60,
+    "name": "NL.IMBAG.Pand.0363100012153715",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b060/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1735,
+    "name": "NL.IMBAG.Pand.0363100012172337",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1735/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 830,
+    "name": "NL.IMBAG.Pand.0363100012168991",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b830/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 201,
+    "name": "NL.IMBAG.Pand.0603100000006704",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b201/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 223,
+    "name": "NL.IMBAG.Pand.0603100000006727",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b223/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1968,
+    "name": "NL.IMBAG.Pand.0363100012176406",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1968/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 133,
+    "name": "NL.IMBAG.Pand.0603100000006589",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b133/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 622,
+    "name": "NL.IMBAG.Pand.0363100012231194",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b622/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 215,
+    "name": "NL.IMBAG.Pand.0603100000006719",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b215/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1363,
+    "name": "NL.IMBAG.Pand.0363100012174721",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1363/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 600,
+    "name": "NL.IMBAG.Pand.0363100012186218",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b600/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 78,
+    "name": "NL.IMBAG.Pand.0603100000005756",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b078/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2562,
+    "name": "NL.IMBAG.Pand.0363100012174685",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2562/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 617,
+    "name": "NL.IMBAG.Pand.0363100012220104",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b617/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 327,
+    "name": "NL.IMBAG.Pand.0363100012166447",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b327/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 226,
+    "name": "NL.IMBAG.Pand.0603100000006775",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b226/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 131,
+    "name": "NL.IMBAG.Pand.0603100000006586",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b131/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 167,
+    "name": "NL.IMBAG.Pand.0363100012158663",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b167/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 610,
+    "name": "NL.IMBAG.Pand.0363100012210800",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b610/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 4,
+    "name": "NL.IMBAG.Pand.0603100000004021",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b004/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 113,
+    "name": "NL.IMBAG.Pand.0363100012156766",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b113/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 616,
+    "name": "NL.IMBAG.Pand.0363100012217932",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b616/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 79,
+    "name": "NL.IMBAG.Pand.0603100000005757",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b079/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 101,
+    "name": "NL.IMBAG.Pand.0603100000006523",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b101/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2708,
+    "name": "NL.IMBAG.Pand.0363100012176858",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2708/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 100,
+    "name": "NL.IMBAG.Pand.0603100000006522",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b100/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 271,
+    "name": "NL.IMBAG.Pand.0363100012164108",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b271/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1387,
+    "name": "NL.IMBAG.Pand.0363100012174894",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1387/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2810,
+    "name": "NL.IMBAG.Pand.0363100012177360",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2810/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 102,
+    "name": "NL.IMBAG.Pand.0603100000006524",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b102/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 138,
+    "name": "NL.IMBAG.Pand.0603100000006594",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b138/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 13,
+    "name": "NL.IMBAG.Pand.0363100012102915",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b013/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 230,
+    "name": "NL.IMBAG.Pand.0603100000006779",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b230/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 109,
+    "name": "NL.IMBAG.Pand.0603100000006531",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b109/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1547,
+    "name": "NL.IMBAG.Pand.0363100012169297",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1547/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 7,
+    "name": "NL.IMBAG.Pand.0603100000004024",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b007/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1417,
+    "name": "NL.IMBAG.Pand.0363100012225200",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1417/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 820,
+    "name": "NL.IMBAG.Pand.0363100012168981",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b820/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 135,
+    "name": "NL.IMBAG.Pand.0603100000006591",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b135/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 612,
+    "name": "NL.IMBAG.Pand.0363100012212290",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b612/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 758,
+    "name": "NL.IMBAG.Pand.0363100012168914",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b758/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2707,
+    "name": "NL.IMBAG.Pand.0363100012176853",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2707/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 127,
+    "name": "NL.IMBAG.Pand.0603100000006574",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b127/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 128,
+    "name": "NL.IMBAG.Pand.0603100000006575",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b128/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 604,
+    "name": "NL.IMBAG.Pand.0363100012191579",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b604/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 601,
+    "name": "NL.IMBAG.Pand.0363100012188042",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b601/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 197,
+    "name": "NL.IMBAG.Pand.0603100000006700",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b197/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 103,
+    "name": "NL.IMBAG.Pand.0603100000006525",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b103/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1931,
+    "name": "NL.IMBAG.Pand.0363100012176240",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1931/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 690,
+    "name": "NL.IMBAG.Pand.0363100012167870",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b690/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 140,
+    "name": "NL.IMBAG.Pand.0603100000006596",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b140/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 848,
+    "name": "NL.IMBAG.Pand.0363100012169342",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b848/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2088,
+    "name": "NL.IMBAG.Pand.0363100012177595",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2088/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 121,
+    "name": "NL.IMBAG.Pand.0603100000006567",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b121/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 804,
+    "name": "NL.IMBAG.Pand.0363100012168964",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b804/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 75,
+    "name": "NL.IMBAG.Pand.0603100000005753",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b075/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 112,
+    "name": "NL.IMBAG.Pand.0363100012156763",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b112/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2702,
+    "name": "NL.IMBAG.Pand.0363100012176848",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2702/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1030,
+    "name": "NL.IMBAG.Pand.0363100012170128",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1030/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 69,
+    "name": "NL.IMBAG.Pand.0603100000005588",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b069/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 184,
+    "name": "NL.IMBAG.Pand.0603100000006654",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b184/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 182,
+    "name": "NL.IMBAG.Pand.0603100000006652",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b182/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 198,
+    "name": "NL.IMBAG.Pand.0603100000006701",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b198/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 894,
+    "name": "NL.IMBAG.Pand.0363100012169717",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b894/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1930,
+    "name": "NL.IMBAG.Pand.0363100012176239",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1930/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 619,
+    "name": "NL.IMBAG.Pand.0363100012224536",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b619/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 228,
+    "name": "NL.IMBAG.Pand.0363100012161980",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b228/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2786,
+    "name": "NL.IMBAG.Pand.0363100012177234",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2786/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1993,
+    "name": "NL.IMBAG.Pand.0363100012176476",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1993/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1933,
+    "name": "NL.IMBAG.Pand.0363100012176242",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1933/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 173,
+    "name": "NL.IMBAG.Pand.0603100000006642",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b173/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 185,
+    "name": "NL.IMBAG.Pand.0603100000006664",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b185/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1991,
+    "name": "NL.IMBAG.Pand.0363100012176474",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1991/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 233,
+    "name": "NL.IMBAG.Pand.0363100012162201",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b233/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 443,
+    "name": "NL.IMBAG.Pand.0363100012169873",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b443/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1353,
+    "name": "NL.IMBAG.Pand.0363100012174710",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1353/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 143,
+    "name": "NL.IMBAG.Pand.0603100000006601",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b143/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 67,
+    "name": "NL.IMBAG.Pand.0603100000005586",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b067/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 527,
+    "name": "NL.IMBAG.Pand.0363100012173808",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b527/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1610,
+    "name": "NL.IMBAG.Pand.0363100012171598",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1610/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 156,
+    "name": "NL.IMBAG.Pand.0603100000006618",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b156/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 70,
+    "name": "NL.IMBAG.Pand.0603100000005589",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b070/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 139,
+    "name": "NL.IMBAG.Pand.0603100000006595",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b139/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 196,
+    "name": "NL.IMBAG.Pand.0603100000006699",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b196/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1416,
+    "name": "NL.IMBAG.Pand.0363100012224253",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1416/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1112,
+    "name": "NL.IMBAG.Pand.0363100012173538",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1112/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2704,
+    "name": "NL.IMBAG.Pand.0363100012176850",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2704/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 918,
+    "name": "NL.IMBAG.Pand.0363100012169815",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b918/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 228,
+    "name": "NL.IMBAG.Pand.0603100000006777",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b228/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1269,
+    "name": "NL.IMBAG.Pand.0363100012174310",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1269/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 889,
+    "name": "NL.IMBAG.Pand.0363100012169712",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b889/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1990,
+    "name": "NL.IMBAG.Pand.0363100012176473",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1990/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 599,
+    "name": "NL.IMBAG.Pand.0363100012184355",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b599/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1259,
+    "name": "NL.IMBAG.Pand.0363100012174300",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1259/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 132,
+    "name": "NL.IMBAG.Pand.0603100000006588",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b132/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 224,
+    "name": "NL.IMBAG.Pand.0603100000006773",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b224/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 19,
+    "name": "NL.IMBAG.Pand.0603100000005055",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b019/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 642,
+    "name": "NL.IMBAG.Pand.0363100012236393",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b642/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 129,
+    "name": "NL.IMBAG.Pand.0603100000006576",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b129/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 225,
+    "name": "NL.IMBAG.Pand.0603100000006774",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b225/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 43,
+    "name": "NL.IMBAG.Pand.0363100012152681",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b043/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 963,
+    "name": "NL.IMBAG.Pand.0363100012169953",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b963/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 105,
+    "name": "NL.IMBAG.Pand.0603100000006527",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b105/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 66,
+    "name": "NL.IMBAG.Pand.0603100000005585",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b066/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 107,
+    "name": "NL.IMBAG.Pand.0603100000006529",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b107/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2672,
+    "name": "NL.IMBAG.Pand.0363100012176665",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2672/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2411,
+    "name": "NL.IMBAG.Pand.0363100012173607",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2411/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 0,
+    "name": "NL.IMBAG.Pand.0603100000003945",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b000/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1986,
+    "name": "NL.IMBAG.Pand.0363100012176469",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1986/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1688,
+    "name": "NL.IMBAG.Pand.0363100012172159",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1688/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 5,
+    "name": "NL.IMBAG.Pand.0603100000004022",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b005/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 231,
+    "name": "NL.IMBAG.Pand.0603100000006780",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b231/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 580,
+    "name": "NL.IMBAG.Pand.0363100012174456",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b580/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 202,
+    "name": "NL.IMBAG.Pand.0603100000006705",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b202/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1557,
+    "name": "NL.IMBAG.Pand.0363100012169443",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1557/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2703,
+    "name": "NL.IMBAG.Pand.0363100012176849",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2703/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 453,
+    "name": "NL.IMBAG.Pand.0363100012169928",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b453/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1994,
+    "name": "NL.IMBAG.Pand.0363100012176520",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1994/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 183,
+    "name": "NL.IMBAG.Pand.0603100000006653",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b183/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2636,
+    "name": "NL.IMBAG.Pand.0363100012176323",
+    "type": "horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2636/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 946,
+    "name": "NL.IMBAG.Pand.0603100000008510",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b946/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1639,
+    "name": "NL.IMBAG.Pand.0603100000023748",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1639/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1577,
+    "name": "NL.IMBAG.Pand.0603100000021193",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1577/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1633,
+    "name": "NL.IMBAG.Pand.0603100000023742",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1633/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 3508,
+    "name": "NL.IMBAG.Pand.0603100000014823",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b3508/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2034,
+    "name": "NL.IMBAG.Pand.0363100012177145",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2034/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 380,
+    "name": "NL.IMBAG.Pand.0363100012168520",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b380/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1625,
+    "name": "NL.IMBAG.Pand.0603100000023734",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1625/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2628,
+    "name": "NL.IMBAG.Pand.0603100000017679",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2628/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 3388,
+    "name": "NL.IMBAG.Pand.0518100000338125",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b3388/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 329,
+    "name": "NL.IMBAG.Pand.0363100012166544",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b329/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1007,
+    "name": "NL.IMBAG.Pand.0363100012170066",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1007/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 225,
+    "name": "NL.IMBAG.Pand.0363100012161817",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b225/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1024,
+    "name": "NL.IMBAG.Pand.0603100000008753",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1024/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1297,
+    "name": "NL.IMBAG.Pand.0603100000014145",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1297/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2588,
+    "name": "NL.IMBAG.Pand.0603100000015888",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2588/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 688,
+    "name": "NL.IMBAG.Pand.0603100000007605",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b688/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2185,
+    "name": "NL.IMBAG.Pand.0603100000012782",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2185/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1608,
+    "name": "NL.IMBAG.Pand.0603100000022583",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1608/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 953,
+    "name": "NL.IMBAG.Pand.0603100000008526",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b953/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1617,
+    "name": "NL.IMBAG.Pand.0603100000023726",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1617/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2587,
+    "name": "NL.IMBAG.Pand.0603100000015887",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2587/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1009,
+    "name": "NL.IMBAG.Pand.0603100000008635",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1009/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1250,
+    "name": "NL.IMBAG.Pand.0603100000010943",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1250/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 534,
+    "name": "NL.IMBAG.Pand.0603100000007332",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b534/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 76,
+    "name": "NL.IMBAG.Pand.0363100012155541",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b076/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 3198,
+    "name": "NL.IMBAG.Pand.0518100000299680",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b3198/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 753,
+    "name": "NL.IMBAG.Pand.0603100000007755",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b753/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1056,
+    "name": "NL.IMBAG.Pand.0363100012170189",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1056/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1819,
+    "name": "NL.IMBAG.Pand.0503100000009964",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1819/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2430,
+    "name": "NL.IMBAG.Pand.0363100012173674",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2430/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1983,
+    "name": "NL.IMBAG.Pand.0503100000021796",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1983/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1631,
+    "name": "NL.IMBAG.Pand.0603100000023740",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1631/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 42,
+    "name": "NL.IMBAG.Pand.0363100012152673",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b042/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1248,
+    "name": "NL.IMBAG.Pand.0603100000010941",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1248/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 67,
+    "name": "NL.IMBAG.Pand.0363100012154222",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b067/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1770,
+    "name": "NL.IMBAG.Pand.0503100000008941",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1770/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1019,
+    "name": "NL.IMBAG.Pand.0363100012170094",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1019/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1286,
+    "name": "NL.IMBAG.Pand.0603100000013906",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1286/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2561,
+    "name": "NL.IMBAG.Pand.0363100012174684",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2561/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 752,
+    "name": "NL.IMBAG.Pand.0603100000007754",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b752/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1310,
+    "name": "NL.IMBAG.Pand.0363100012174529",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1310/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2127,
+    "name": "NL.IMBAG.Pand.0363100012250608",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2127/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1018,
+    "name": "NL.IMBAG.Pand.0363100012170080",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1018/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1989,
+    "name": "NL.IMBAG.Pand.0503100000021955",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1989/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2170,
+    "name": "NL.IMBAG.Pand.0363100012168590",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2170/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 117,
+    "name": "NL.IMBAG.Pand.0603100000006563",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b117/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1019,
+    "name": "NL.IMBAG.Pand.0603100000008676",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1019/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1081,
+    "name": "NL.IMBAG.Pand.0363100012170796",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1081/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2280,
+    "name": "NL.IMBAG.Pand.0363100012171896",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2280/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1980,
+    "name": "NL.IMBAG.Pand.0503100000021788",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1980/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 838,
+    "name": "NL.IMBAG.Pand.0363100012168999",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b838/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2876,
+    "name": "NL.IMBAG.Pand.0363100012253862",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2876/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1632,
+    "name": "NL.IMBAG.Pand.0603100000023741",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1632/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 749,
+    "name": "NL.IMBAG.Pand.0603100000007751",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b749/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1016,
+    "name": "NL.IMBAG.Pand.0603100000008673",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1016/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 518,
+    "name": "NL.IMBAG.Pand.0363100012173796",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b518/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1142,
+    "name": "NL.IMBAG.Pand.0603100000009475",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1142/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1525,
+    "name": "NL.IMBAG.Pand.0603100000017287",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1525/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 108,
+    "name": "NL.IMBAG.Pand.0363100012156681",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b108/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 145,
+    "name": "NL.IMBAG.Pand.0603100000006603",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b145/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1141,
+    "name": "NL.IMBAG.Pand.0603100000009377",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1141/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1236,
+    "name": "NL.IMBAG.Pand.0603100000010810",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1236/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 802,
+    "name": "NL.IMBAG.Pand.0363100012168962",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b802/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 363,
+    "name": "NL.IMBAG.Pand.0363100012167464",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b363/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1996,
+    "name": "NL.IMBAG.Pand.0503100000021962",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1996/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1167,
+    "name": "NL.IMBAG.Pand.0603100000009698",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1167/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1667,
+    "name": "NL.IMBAG.Pand.0363100012171819",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1667/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 647,
+    "name": "NL.IMBAG.Pand.0603100000007557",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b647/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1359,
+    "name": "NL.IMBAG.Pand.0363100012174717",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1359/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1045,
+    "name": "NL.IMBAG.Pand.0603100000008819",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1045/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 782,
+    "name": "NL.IMBAG.Pand.0603100000007860",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b782/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 608,
+    "name": "NL.IMBAG.Pand.0363100012208942",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b608/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 992,
+    "name": "NL.IMBAG.Pand.0363100012170024",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b992/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2843,
+    "name": "NL.IMBAG.Pand.0518100000224988",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2843/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2007,
+    "name": "NL.IMBAG.Pand.0503100000022040",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2007/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 945,
+    "name": "NL.IMBAG.Pand.0603100000008509",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b945/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1005,
+    "name": "NL.IMBAG.Pand.0603100000008626",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1005/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1700,
+    "name": "NL.IMBAG.Pand.0603100000024821",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1700/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1820,
+    "name": "NL.IMBAG.Pand.0503100000009965",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1820/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 114,
+    "name": "NL.IMBAG.Pand.0603100000006550",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b114/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2827,
+    "name": "NL.IMBAG.Pand.0518100000221111",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2827/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1990,
+    "name": "NL.IMBAG.Pand.0503100000021956",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1990/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2058,
+    "name": "NL.IMBAG.Pand.0503100000028439",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2058/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1041,
+    "name": "NL.IMBAG.Pand.0603100000008808",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1041/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 3459,
+    "name": "NL.IMBAG.Pand.0518100000346301",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b3459/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1994,
+    "name": "NL.IMBAG.Pand.0503100000021960",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1994/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 152,
+    "name": "NL.IMBAG.Pand.0363100012157984",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b152/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1202,
+    "name": "NL.IMBAG.Pand.0363100012174162",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1202/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1433,
+    "name": "NL.IMBAG.Pand.0363100012242759",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1433/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2631,
+    "name": "NL.IMBAG.Pand.0603100000017682",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2631/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 309,
+    "name": "NL.IMBAG.Pand.0363100012165785",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b309/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2482,
+    "name": "NL.IMBAG.Pand.0363100012173925",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2482/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1636,
+    "name": "NL.IMBAG.Pand.0603100000023745",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1636/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 18,
+    "name": "NL.IMBAG.Pand.0363100012119454",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b018/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 553,
+    "name": "NL.IMBAG.Pand.0603100000007385",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b553/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 3180,
+    "name": "NL.IMBAG.Pand.0518100000290294",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b3180/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 492,
+    "name": "NL.IMBAG.Pand.0363100012173536",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b492/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 99,
+    "name": "NL.IMBAG.Pand.0363100012156430",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b099/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1520,
+    "name": "NL.IMBAG.Pand.0603100000017048",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1520/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1860,
+    "name": "NL.IMBAG.Pand.0363100012174665",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1860/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1296,
+    "name": "NL.IMBAG.Pand.0603100000014144",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1296/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1091,
+    "name": "NL.IMBAG.Pand.0363100012170806",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1091/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 917,
+    "name": "NL.IMBAG.Pand.0363100012169814",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b917/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 2586,
+    "name": "NL.IMBAG.Pand.0363100012174947",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b2586/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1255,
+    "name": "NL.IMBAG.Pand.0603100000011160",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1255/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 154,
+    "name": "NL.IMBAG.Pand.0603100000006616",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b154/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1288,
+    "name": "NL.IMBAG.Pand.0603100000013908",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1288/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 275,
+    "name": "NL.IMBAG.Pand.0363100012164242",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b275/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 14,
+    "name": "NL.IMBAG.Pand.0363100012103619",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b014/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1619,
+    "name": "NL.IMBAG.Pand.0603100000023728",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1619/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1139,
+    "name": "NL.IMBAG.Pand.0603100000009370",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1139/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1456,
+    "name": "NL.IMBAG.Pand.0363100012165084",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1456/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1560,
+    "name": "NL.IMBAG.Pand.0363100012169502",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1560/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1236,
+    "name": "NL.IMBAG.Pand.0363100012174275",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1236/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1623,
+    "name": "NL.IMBAG.Pand.0603100000023732",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1623/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 59,
+    "name": "NL.IMBAG.Pand.0603100000005578",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b059/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 944,
+    "name": "NL.IMBAG.Pand.0603100000008508",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b944/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1319,
+    "name": "NL.IMBAG.Pand.0603100000014822",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1319/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2056,
+    "name": "NL.IMBAG.Pand.0503100000028427",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2056/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2037,
+    "name": "NL.IMBAG.Pand.0503100000027539",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2037/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 783,
+    "name": "NL.IMBAG.Pand.0603100000007861",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b783/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1259,
+    "name": "NL.IMBAG.Pand.0603100000011229",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1259/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 681,
+    "name": "NL.IMBAG.Pand.0363100012162368",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b681/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1402,
+    "name": "NL.IMBAG.Pand.0363100012174998",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1402/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 539,
+    "name": "NL.IMBAG.Pand.0603100000007349",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b539/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2412,
+    "name": "NL.IMBAG.Pand.0603100000014604",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2412/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 750,
+    "name": "NL.IMBAG.Pand.0363100012168906",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b750/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 22,
+    "name": "NL.IMBAG.Pand.0363100012125376",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b022/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1294,
+    "name": "NL.IMBAG.Pand.0603100000014142",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1294/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 839,
+    "name": "NL.IMBAG.Pand.0603100000008185",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b839/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2006,
+    "name": "NL.IMBAG.Pand.0503100000022039",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2006/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1322,
+    "name": "NL.IMBAG.Pand.0603100000014856",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1322/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1445,
+    "name": "NL.IMBAG.Pand.0603100000015911",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1445/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 1858,
+    "name": "NL.IMBAG.Pand.0503100000010169",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b1858/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 838,
+    "name": "NL.IMBAG.Pand.0603100000008184",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b838/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 919,
+    "name": "NL.IMBAG.Pand.0363100012169816",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b919/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1435,
+    "name": "NL.IMBAG.Pand.0363100012243633",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b1435/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2003,
+    "name": "NL.IMBAG.Pand.0503100000021969",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2003/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 785,
+    "name": "NL.IMBAG.Pand.0603100000007900",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b785/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 71,
+    "name": "NL.IMBAG.Pand.0603100000005747",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b071/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2120,
+    "name": "NL.IMBAG.Pand.0518100000242833",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2120/building.city.json"
+  },
+  {
+    "scene": "delft_wijk",
+    "id": 2010,
+    "name": "NL.IMBAG.Pand.0503100000022043",
+    "type": "multiple horizontal",
+    "gt_path": "/tmp/3dbag_valid/delft_wijk/b2010/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 23,
+    "name": "NL.IMBAG.Pand.0363100012125479",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b023/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 97,
+    "name": "NL.IMBAG.Pand.0363100012156198",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b097/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 127,
+    "name": "NL.IMBAG.Pand.0363100012157227",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b127/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 213,
+    "name": "NL.IMBAG.Pand.0363100012161267",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b213/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 182,
+    "name": "NL.IMBAG.Pand.0363100012159399",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b182/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 191,
+    "name": "NL.IMBAG.Pand.0363100012159968",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b191/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 220,
+    "name": "NL.IMBAG.Pand.0363100012161673",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b220/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 69,
+    "name": "NL.IMBAG.Pand.0363100012154275",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b069/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 32,
+    "name": "NL.IMBAG.Pand.0363100012152511",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b032/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 17,
+    "name": "NL.IMBAG.Pand.0363100012110245",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b017/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 210,
+    "name": "NL.IMBAG.Pand.0363100012161068",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b210/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 193,
+    "name": "NL.IMBAG.Pand.0363100012160107",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b193/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 107,
+    "name": "NL.IMBAG.Pand.0363100012156665",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b107/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 142,
+    "name": "NL.IMBAG.Pand.0363100012157699",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b142/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 49,
+    "name": "NL.IMBAG.Pand.0363100012152842",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b049/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 55,
+    "name": "NL.IMBAG.Pand.0363100012153200",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b055/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 33,
+    "name": "NL.IMBAG.Pand.0363100012152520",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b033/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 203,
+    "name": "NL.IMBAG.Pand.0363100012160648",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b203/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 89,
+    "name": "NL.IMBAG.Pand.0363100012155824",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b089/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 170,
+    "name": "NL.IMBAG.Pand.0363100012158725",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b170/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 187,
+    "name": "NL.IMBAG.Pand.0363100012159768",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b187/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 94,
+    "name": "NL.IMBAG.Pand.0363100012156156",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b094/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 157,
+    "name": "NL.IMBAG.Pand.0363100012158175",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b157/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 184,
+    "name": "NL.IMBAG.Pand.0363100012159537",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b184/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 46,
+    "name": "NL.IMBAG.Pand.0363100012152705",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b046/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 35,
+    "name": "NL.IMBAG.Pand.0363100012152522",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b035/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 192,
+    "name": "NL.IMBAG.Pand.0363100012159971",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b192/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 26,
+    "name": "NL.IMBAG.Pand.0363100012130645",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b026/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 30,
+    "name": "NL.IMBAG.Pand.0363100012152333",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b030/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 223,
+    "name": "NL.IMBAG.Pand.0363100012161739",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b223/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 92,
+    "name": "NL.IMBAG.Pand.0363100012156087",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b092/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 212,
+    "name": "NL.IMBAG.Pand.0363100012161166",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b212/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 12,
+    "name": "NL.IMBAG.Pand.0363100012100805",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b012/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 91,
+    "name": "NL.IMBAG.Pand.0363100012156086",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b091/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 8,
+    "name": "NL.IMBAG.Pand.0363100012088251",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b008/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 98,
+    "name": "NL.IMBAG.Pand.0363100012156211",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b098/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 217,
+    "name": "NL.IMBAG.Pand.0363100012161538",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b217/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 190,
+    "name": "NL.IMBAG.Pand.0363100012159936",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b190/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 52,
+    "name": "NL.IMBAG.Pand.0363100012152920",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b052/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 117,
+    "name": "NL.IMBAG.Pand.0363100012156923",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b117/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 188,
+    "name": "NL.IMBAG.Pand.0363100012159799",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b188/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 124,
+    "name": "NL.IMBAG.Pand.0363100012157083",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b124/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 248,
+    "name": "NL.IMBAG.Pand.0363100012162851",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b248/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 102,
+    "name": "NL.IMBAG.Pand.0363100012156462",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b102/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 209,
+    "name": "NL.IMBAG.Pand.0363100012160801",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b209/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 87,
+    "name": "NL.IMBAG.Pand.0363100012155799",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b087/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 56,
+    "name": "NL.IMBAG.Pand.0363100012153452",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b056/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 36,
+    "name": "NL.IMBAG.Pand.0363100012152531",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b036/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 73,
+    "name": "NL.IMBAG.Pand.0363100012155382",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b073/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 173,
+    "name": "NL.IMBAG.Pand.0363100012158948",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b173/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 119,
+    "name": "NL.IMBAG.Pand.0363100012157004",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b119/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 54,
+    "name": "NL.IMBAG.Pand.0363100012153021",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b054/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 231,
+    "name": "NL.IMBAG.Pand.0363100012162115",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b231/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 96,
+    "name": "NL.IMBAG.Pand.0363100012156173",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b096/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 48,
+    "name": "NL.IMBAG.Pand.0363100012152833",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b048/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 172,
+    "name": "NL.IMBAG.Pand.0363100012158861",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b172/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 162,
+    "name": "NL.IMBAG.Pand.0363100012158498",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b162/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 4,
+    "name": "NL.IMBAG.Pand.0363100012080345",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b004/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 84,
+    "name": "NL.IMBAG.Pand.0363100012155746",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b084/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 45,
+    "name": "NL.IMBAG.Pand.0363100012152702",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b045/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 243,
+    "name": "NL.IMBAG.Pand.0363100012162582",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b243/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 122,
+    "name": "NL.IMBAG.Pand.0363100012157054",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b122/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 244,
+    "name": "NL.IMBAG.Pand.0363100012162654",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b244/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 219,
+    "name": "NL.IMBAG.Pand.0363100012161668",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b219/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 106,
+    "name": "NL.IMBAG.Pand.0363100012156639",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b106/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 40,
+    "name": "NL.IMBAG.Pand.0363100012152612",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b040/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 234,
+    "name": "NL.IMBAG.Pand.0363100012162224",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b234/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 154,
+    "name": "NL.IMBAG.Pand.0363100012158003",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b154/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 88,
+    "name": "NL.IMBAG.Pand.0363100012155804",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b088/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 239,
+    "name": "NL.IMBAG.Pand.0363100012162464",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b239/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 3,
+    "name": "NL.IMBAG.Pand.0363100012073466",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b003/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 29,
+    "name": "NL.IMBAG.Pand.0363100012143296",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b029/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 180,
+    "name": "NL.IMBAG.Pand.0363100012159307",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b180/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 5,
+    "name": "NL.IMBAG.Pand.0363100012084624",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b005/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 100,
+    "name": "NL.IMBAG.Pand.0363100012156449",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b100/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 137,
+    "name": "NL.IMBAG.Pand.0363100012157582",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b137/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 150,
+    "name": "NL.IMBAG.Pand.0363100012157859",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b150/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 226,
+    "name": "NL.IMBAG.Pand.0363100012161917",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b226/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 101,
+    "name": "NL.IMBAG.Pand.0363100012156458",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b101/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 242,
+    "name": "NL.IMBAG.Pand.0363100012162495",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b242/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 143,
+    "name": "NL.IMBAG.Pand.0363100012157749",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b143/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 111,
+    "name": "NL.IMBAG.Pand.0363100012156749",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b111/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 11,
+    "name": "NL.IMBAG.Pand.0363100012090216",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b011/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 159,
+    "name": "NL.IMBAG.Pand.0363100012158277",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b159/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 38,
+    "name": "NL.IMBAG.Pand.0363100012152568",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b038/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 241,
+    "name": "NL.IMBAG.Pand.0363100012162482",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b241/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 103,
+    "name": "NL.IMBAG.Pand.0363100012156482",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b103/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 200,
+    "name": "NL.IMBAG.Pand.0363100012160396",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b200/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 189,
+    "name": "NL.IMBAG.Pand.0363100012159800",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b189/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 134,
+    "name": "NL.IMBAG.Pand.0363100012157511",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b134/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 179,
+    "name": "NL.IMBAG.Pand.0363100012159235",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b179/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 249,
+    "name": "NL.IMBAG.Pand.0363100012162970",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b249/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 178,
+    "name": "NL.IMBAG.Pand.0363100012159217",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b178/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 130,
+    "name": "NL.IMBAG.Pand.0363100012157419",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b130/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 165,
+    "name": "NL.IMBAG.Pand.0363100012158611",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b165/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 95,
+    "name": "NL.IMBAG.Pand.0363100012156162",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b095/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 34,
+    "name": "NL.IMBAG.Pand.0363100012152521",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b034/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 224,
+    "name": "NL.IMBAG.Pand.0363100012161762",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b224/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 245,
+    "name": "NL.IMBAG.Pand.0363100012162690",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b245/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 204,
+    "name": "NL.IMBAG.Pand.0363100012160649",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b204/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 136,
+    "name": "NL.IMBAG.Pand.0363100012157535",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b136/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 238,
+    "name": "NL.IMBAG.Pand.0363100012162406",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b238/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 93,
+    "name": "NL.IMBAG.Pand.0363100012156139",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b093/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 83,
+    "name": "NL.IMBAG.Pand.0363100012155731",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b083/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 115,
+    "name": "NL.IMBAG.Pand.0363100012156899",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b115/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 27,
+    "name": "NL.IMBAG.Pand.0363100012138462",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b027/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 85,
+    "name": "NL.IMBAG.Pand.0363100012155774",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b085/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 168,
+    "name": "NL.IMBAG.Pand.0363100012158674",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b168/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 79,
+    "name": "NL.IMBAG.Pand.0363100012155657",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b079/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 199,
+    "name": "NL.IMBAG.Pand.0363100012160388",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b199/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 75,
+    "name": "NL.IMBAG.Pand.0363100012155521",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b075/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 20,
+    "name": "NL.IMBAG.Pand.0363100012124002",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b020/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 146,
+    "name": "NL.IMBAG.Pand.0363100012157807",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b146/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 181,
+    "name": "NL.IMBAG.Pand.0363100012159353",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b181/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 246,
+    "name": "NL.IMBAG.Pand.0363100012162794",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b246/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 109,
+    "name": "NL.IMBAG.Pand.0363100012156684",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b109/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 58,
+    "name": "NL.IMBAG.Pand.0363100012153642",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b058/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 118,
+    "name": "NL.IMBAG.Pand.0363100012156934",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b118/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 39,
+    "name": "NL.IMBAG.Pand.0363100012152589",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b039/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 135,
+    "name": "NL.IMBAG.Pand.0363100012157529",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b135/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 171,
+    "name": "NL.IMBAG.Pand.0363100012158787",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b171/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 149,
+    "name": "NL.IMBAG.Pand.0363100012157840",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b149/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 163,
+    "name": "NL.IMBAG.Pand.0363100012158533",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b163/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 1,
+    "name": "NL.IMBAG.Pand.0363100012069666",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b001/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 161,
+    "name": "NL.IMBAG.Pand.0363100012158478",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b161/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 15,
+    "name": "NL.IMBAG.Pand.0363100012103660",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b015/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 10,
+    "name": "NL.IMBAG.Pand.0363100012089206",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b010/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 156,
+    "name": "NL.IMBAG.Pand.0363100012158140",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b156/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 28,
+    "name": "NL.IMBAG.Pand.0363100012138896",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b028/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 77,
+    "name": "NL.IMBAG.Pand.0363100012155585",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b077/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 141,
+    "name": "NL.IMBAG.Pand.0363100012157674",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b141/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 110,
+    "name": "NL.IMBAG.Pand.0363100012156739",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b110/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 196,
+    "name": "NL.IMBAG.Pand.0363100012160276",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b196/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 222,
+    "name": "NL.IMBAG.Pand.0363100012161728",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b222/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 24,
+    "name": "NL.IMBAG.Pand.0363100012127125",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b024/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 202,
+    "name": "NL.IMBAG.Pand.0363100012160597",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b202/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 144,
+    "name": "NL.IMBAG.Pand.0363100012157767",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b144/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 129,
+    "name": "NL.IMBAG.Pand.0363100012157308",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b129/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 151,
+    "name": "NL.IMBAG.Pand.0363100012157958",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b151/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 138,
+    "name": "NL.IMBAG.Pand.0363100012157617",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b138/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 229,
+    "name": "NL.IMBAG.Pand.0363100012162072",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b229/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 63,
+    "name": "NL.IMBAG.Pand.0363100012154100",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b063/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 68,
+    "name": "NL.IMBAG.Pand.0363100012154262",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b068/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 236,
+    "name": "NL.IMBAG.Pand.0363100012162285",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b236/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 57,
+    "name": "NL.IMBAG.Pand.0363100012153628",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b057/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 116,
+    "name": "NL.IMBAG.Pand.0363100012156913",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b116/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 140,
+    "name": "NL.IMBAG.Pand.0363100012157649",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b140/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 133,
+    "name": "NL.IMBAG.Pand.0363100012157476",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b133/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 7,
+    "name": "NL.IMBAG.Pand.0363100012086276",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b007/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 125,
+    "name": "NL.IMBAG.Pand.0363100012157126",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b125/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 6,
+    "name": "NL.IMBAG.Pand.0363100012085603",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b006/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 131,
+    "name": "NL.IMBAG.Pand.0363100012157440",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b131/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 227,
+    "name": "NL.IMBAG.Pand.0363100012161958",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b227/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 64,
+    "name": "NL.IMBAG.Pand.0363100012154112",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b064/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 218,
+    "name": "NL.IMBAG.Pand.0363100012161548",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b218/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 123,
+    "name": "NL.IMBAG.Pand.0363100012157055",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b123/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 66,
+    "name": "NL.IMBAG.Pand.0363100012154138",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b066/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 19,
+    "name": "NL.IMBAG.Pand.0363100012121916",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b019/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 86,
+    "name": "NL.IMBAG.Pand.0363100012155797",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b086/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 59,
+    "name": "NL.IMBAG.Pand.0363100012153662",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b059/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 206,
+    "name": "NL.IMBAG.Pand.0363100012160679",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b206/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 198,
+    "name": "NL.IMBAG.Pand.0363100012160295",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b198/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 71,
+    "name": "NL.IMBAG.Pand.0363100012154317",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b071/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 183,
+    "name": "NL.IMBAG.Pand.0363100012159452",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b183/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 153,
+    "name": "NL.IMBAG.Pand.0363100012157994",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b153/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 78,
+    "name": "NL.IMBAG.Pand.0363100012155639",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b078/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 232,
+    "name": "NL.IMBAG.Pand.0363100012162133",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b232/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 62,
+    "name": "NL.IMBAG.Pand.0363100012153816",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b062/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 105,
+    "name": "NL.IMBAG.Pand.0363100012156527",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b105/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 37,
+    "name": "NL.IMBAG.Pand.0363100012152546",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b037/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 82,
+    "name": "NL.IMBAG.Pand.0363100012155692",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b082/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 120,
+    "name": "NL.IMBAG.Pand.0363100012157022",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b120/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 114,
+    "name": "NL.IMBAG.Pand.0363100012156772",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b114/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 176,
+    "name": "NL.IMBAG.Pand.0363100012159020",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b176/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 139,
+    "name": "NL.IMBAG.Pand.0363100012157638",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b139/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 175,
+    "name": "NL.IMBAG.Pand.0363100012158983",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b175/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 177,
+    "name": "NL.IMBAG.Pand.0363100012159047",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b177/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 9,
+    "name": "NL.IMBAG.Pand.0363100012088841",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b009/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 80,
+    "name": "NL.IMBAG.Pand.0363100012155664",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b080/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 25,
+    "name": "NL.IMBAG.Pand.0363100012128825",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b025/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 211,
+    "name": "NL.IMBAG.Pand.0363100012161128",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b211/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 44,
+    "name": "NL.IMBAG.Pand.0363100012152692",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b044/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 70,
+    "name": "NL.IMBAG.Pand.0363100012154279",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b070/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 166,
+    "name": "NL.IMBAG.Pand.0363100012158622",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b166/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 74,
+    "name": "NL.IMBAG.Pand.0363100012155520",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b074/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 16,
+    "name": "NL.IMBAG.Pand.0363100012104946",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b016/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 185,
+    "name": "NL.IMBAG.Pand.0363100012159621",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b185/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 186,
+    "name": "NL.IMBAG.Pand.0363100012159646",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b186/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 61,
+    "name": "NL.IMBAG.Pand.0363100012153762",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b061/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 121,
+    "name": "NL.IMBAG.Pand.0363100012157023",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b121/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 31,
+    "name": "NL.IMBAG.Pand.0363100012152340",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b031/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 208,
+    "name": "NL.IMBAG.Pand.0363100012160766",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b208/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 47,
+    "name": "NL.IMBAG.Pand.0363100012152780",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b047/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 215,
+    "name": "NL.IMBAG.Pand.0363100012161315",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b215/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 53,
+    "name": "NL.IMBAG.Pand.0363100012152957",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b053/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 169,
+    "name": "NL.IMBAG.Pand.0363100012158679",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b169/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 195,
+    "name": "NL.IMBAG.Pand.0363100012160227",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b195/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 126,
+    "name": "NL.IMBAG.Pand.0363100012157151",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b126/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 21,
+    "name": "NL.IMBAG.Pand.0363100012124342",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b021/building.city.json"
+  },
+  {
+    "scene": "amsterdam_jordaan",
+    "id": 160,
+    "name": "NL.IMBAG.Pand.0363100012158289",
+    "type": "slanted",
+    "gt_path": "/tmp/3dbag_valid/amsterdam_jordaan/b160/building.city.json"
+  }
+]

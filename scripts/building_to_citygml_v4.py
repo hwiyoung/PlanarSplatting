@@ -30,10 +30,16 @@ from scipy.spatial import ConvexHull
 # Step 1: Primitive Clustering → Surface Groups
 # ─────────────────────────────────────────────────────────────────────────────
 
-def cluster_primitives(centers, normals, areas, labels, cos_thresh=0.85):
+def cluster_primitives(centers, normals, areas, labels, cos_thresh=0.85,
+                       min_cluster_fraction=0.05):
     """
     Cluster primitives within same semantic class by normal similarity.
     Same wall/roof plane → same surface group, regardless of spatial distance.
+
+    Two-pass approach:
+      1. Strict clustering (cos_thresh=0.92) to separate shallow slopes
+      2. Merge tiny clusters (< min_cluster_fraction of class total) into
+         nearest large cluster — prevents noise-induced over-segmentation
     """
     groups = []
     for cls in [1, 2]:  # roof=1, wall=2
@@ -58,13 +64,130 @@ def cluster_primitives(centers, normals, areas, labels, cos_thresh=0.85):
             })
             continue
 
-        # Normal-only distance: 1 - |cos(angle)|
+        # Pass 1: strict clustering
+        strict_thresh = max(cos_thresh, 0.92)
+
+        # Normal-only distance: 1 - cos(angle)  [signed, so opposite normals → distance=2]
         n_hat = cls_normals / (np.linalg.norm(cls_normals, axis=1, keepdims=True) + 1e-12)
-        cos_sim = np.clip(np.abs(n_hat @ n_hat.T), 0, 1)
+        cos_sim = np.clip(n_hat @ n_hat.T, -1, 1)
         condensed = (1.0 - cos_sim)[np.triu_indices(len(cls_ids), k=1)]
 
         Z = linkage(condensed, method='average')
-        cluster_ids = fcluster(Z, t=1.0 - cos_thresh, criterion='distance')
+        cluster_ids = fcluster(Z, t=1.0 - strict_thresh, criterion='distance')
+
+        # Pass 1.5: split clusters that contain spatially disjoint planes.
+        # Two sub-passes:
+        #   a) Split by plane_d gap (parallel planes at different offsets,
+        #      e.g. L-shape two [-1,0,0] walls at different X)
+        #   b) Split by tangent-direction gap (coplanar but separated,
+        #      e.g. T-shape two [0,0,-1] walls at same Z but different X)
+        def _try_gap_split(values, min_gap=1.0, adaptive=False):
+            """Find split point by largest gap. Returns bool mask or None.
+
+            Args:
+                min_gap: minimum gap to trigger split (meters).
+                adaptive: if True, use adaptive threshold based on order
+                    statistics (Pyke 1965). The expected max gap for n
+                    uniform points on range L is L*ln(n)/n. Split only
+                    if gap > k * expected_max_gap (k=3). This prevents
+                    over-splitting sparse clusters.
+            """
+            sorted_v = np.sort(values)
+            gaps = np.diff(sorted_v)
+            if len(gaps) == 0:
+                return None
+            gi = np.argmax(gaps)
+            if adaptive:
+                n = len(values)
+                vrange = sorted_v[-1] - sorted_v[0]
+                if vrange < 1e-6 or n < 4:
+                    return None
+                expected_max = vrange * np.log(n) / n
+                threshold = max(min_gap, 3.0 * expected_max)
+            else:
+                threshold = min_gap
+            if gaps[gi] < threshold:
+                return None
+            split_val = (sorted_v[gi] + sorted_v[gi + 1]) / 2
+            hi_mask = values > split_val
+            if hi_mask.sum() < 2 or (~hi_mask).sum() < 2:
+                return None
+            return hi_mask
+
+        # Iterate until no more splits (handles cascading splits)
+        changed = True
+        next_cid = cluster_ids.max() + 1
+        while changed:
+            changed = False
+            new_ids = cluster_ids.copy()
+            for cid in np.unique(cluster_ids):
+                cmask = cluster_ids == cid
+                if cmask.sum() < 4:
+                    continue
+                cc = cls_centers[cmask]
+                cn = cls_normals[cmask]
+                local_idx = np.where(cmask)[0]
+
+                w_n = cn.mean(0)
+                w_n /= np.linalg.norm(w_n) + 1e-12
+
+                # (a) plane_d gap (parallel planes at different offsets)
+                plane_ds = cc @ w_n
+                split = _try_gap_split(plane_ds)
+                if split is not None:
+                    new_ids[local_idx[split]] = next_cid
+                    next_cid += 1
+                    changed = True
+                    continue
+
+                # (b) tangent-direction gap (coplanar but spatially separated)
+                # Uses adaptive threshold to avoid over-splitting sparse clusters
+                proj = cc - np.outer(cc @ w_n, w_n)
+                for axis in range(3):
+                    if abs(w_n[axis]) > 0.7:
+                        continue
+                    split = _try_gap_split(proj[:, axis], adaptive=True)
+                    if split is not None:
+                        new_ids[local_idx[split]] = next_cid
+                        next_cid += 1
+                        changed = True
+                        break
+            cluster_ids = new_ids
+
+        # Pass 2: merge tiny clusters into nearest large cluster
+        # (absorb for both prim_ids and plane equation,
+        #  trimmed mean in Pass 3 handles intra-cluster outliers)
+        min_size = max(2, int(len(cls_ids) * min_cluster_fraction))
+        unique_cids = np.unique(cluster_ids)
+        large_cids = [c for c in unique_cids if (cluster_ids == c).sum() >= min_size]
+        small_cids = [c for c in unique_cids if (cluster_ids == c).sum() < min_size]
+
+        if large_cids and small_cids:
+            large_normals = {}
+            for c in large_cids:
+                cm = cluster_ids == c
+                ca = cls_areas[cm]
+                cn = cls_normals[cm]
+                w = ca / (ca.sum() + 1e-12)
+                mn = (cn * w[:, None]).sum(0)
+                mn /= np.linalg.norm(mn) + 1e-12
+                large_normals[c] = mn
+
+            for sc in small_cids:
+                sm = cluster_ids == sc
+                s_normals = cls_normals[sm]
+                s_areas = cls_areas[sm]
+                sw = s_areas / (s_areas.sum() + 1e-12)
+                s_mean = (s_normals * sw[:, None]).sum(0)
+                s_mean /= np.linalg.norm(s_mean) + 1e-12
+
+                best_c, best_sim = large_cids[0], -2.0
+                for lc, ln in large_normals.items():
+                    sim = float(np.dot(s_mean, ln))
+                    if sim > best_sim:
+                        best_sim = sim
+                        best_c = lc
+                cluster_ids[sm] = best_c
 
         for cid in np.unique(cluster_ids):
             cmask = cluster_ids == cid
@@ -73,10 +196,25 @@ def cluster_primitives(centers, normals, areas, labels, cos_thresh=0.85):
             cc = cls_centers[cmask]
             ca = cls_areas[cmask]
 
+            # Robust plane normal: trimmed weighted mean
+            # 1. Initial estimate from all primitives in cluster
+            n_hat = cn / (np.linalg.norm(cn, axis=1, keepdims=True) + 1e-12)
             w = ca / (ca.sum() + 1e-12)
-            mean_n = (cn * w[:, None]).sum(0)
-            mean_n /= np.linalg.norm(mean_n) + 1e-12
-            mean_c = (cc * w[:, None]).sum(0)
+            init_n = (n_hat * w[:, None]).sum(0)
+            init_n /= np.linalg.norm(init_n) + 1e-12
+
+            # 2. Trim: exclude normals deviating >30° from initial estimate
+            cos_sims = n_hat @ init_n
+            trim_mask = cos_sims > 0.866  # cos(30°)
+
+            if trim_mask.sum() >= 3:
+                w_in = ca[trim_mask] / (ca[trim_mask].sum() + 1e-12)
+                mean_n = (cn[trim_mask] * w_in[:, None]).sum(0)
+                mean_n /= np.linalg.norm(mean_n) + 1e-12
+                mean_c = (cc[trim_mask] * w_in[:, None]).sum(0)
+            else:
+                mean_n = init_n
+                mean_c = (cc * w[:, None]).sum(0)
 
             groups.append({
                 'plane_normal': mean_n,
@@ -103,7 +241,10 @@ def orient_normals_outward(groups, building_center):
 
 def add_ground_surface(groups, wall_centers, building_center):
     """Add virtual GroundSurface at wall base. COLMAP: -Y up, down = +Y outward."""
-    y_base = float(np.percentile(wall_centers[:, 1], 95))
+    # Use max Y of wall centers (= lowest point in COLMAP convention)
+    # 95th percentile was too conservative — wall prims are distributed
+    # along the full wall height, so max Y captures the actual base.
+    y_base = float(np.max(wall_centers[:, 1]))
     groups.append({
         'plane_normal': np.array([0.0, 1.0, 0.0]),  # outward = down (+Y)
         'plane_d': float(y_base),
@@ -166,7 +307,7 @@ def add_bbox_planes(groups, prim_centers, margin=0.05):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step 3: Convex Polytope from Half-Space Intersection
+# Step 3: Building Solid from Wall Planes (handles non-convex footprints)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def intersect_three_planes(n1, d1, n2, d2, n3, d3):
@@ -176,6 +317,190 @@ def intersect_three_planes(n1, d1, n2, d2, n3, d3):
     if abs(det) < 1e-10:
         return None
     return np.linalg.solve(A, np.array([d1, d2, d3]))
+
+
+def _arrangement_footprint(groups, centers, bbox_margin=5.0):
+    """Extract 2D footprint via plane arrangement + cell labeling.
+
+    1. Wall planes → lines in XZ
+    2. Lines split bounding box into cells (shapely)
+    3. Cells containing primitives = inside
+    4. Union of inside cells = footprint polygon
+
+    Handles arbitrary footprint shapes (convex, L, T, U, etc.)
+    Returns: shapely Polygon or None.
+    """
+    from shapely.geometry import Polygon as SPoly, LineString as SLine, Point as SPoint
+    from shapely.ops import split as shapely_split, unary_union
+
+    wall_groups = [(i, g) for i, g in enumerate(groups)
+                   if g['class'] == 2 and not g.get('is_bbox')]
+    if len(wall_groups) < 3:
+        return None
+
+    # Bounding box from all primitive centers
+    xz = centers[:, [0, 2]]
+    bmin = xz.min(0) - bbox_margin
+    bmax = xz.max(0) + bbox_margin
+
+    # Wall planes → lines in XZ
+    lines = []
+    for _, g in wall_groups:
+        nx, nz = g['plane_normal'][0], g['plane_normal'][2]
+        if abs(nx) < 1e-6 and abs(nz) < 1e-6:
+            continue
+        d = g['plane_d']
+        # Line equation: nx*x + nz*z = d
+        if abs(nx) > abs(nz):
+            z1, z2 = bmin[1] - 5, bmax[1] + 5
+            x1, x2 = (d - nz * z1) / nx, (d - nz * z2) / nx
+        else:
+            x1, x2 = bmin[0] - 5, bmax[0] + 5
+            z1, z2 = (d - nx * x1) / nz, (d - nx * x2) / nz
+        lines.append(SLine([(x1, z1), (x2, z2)]))
+
+    # Split bbox into cells
+    bbox_poly = SPoly([
+        (bmin[0], bmin[1]), (bmax[0], bmin[1]),
+        (bmax[0], bmax[1]), (bmin[0], bmax[1]),
+    ])
+    cells = [bbox_poly]
+    for line in lines:
+        new_cells = []
+        for cell in cells:
+            try:
+                parts = shapely_split(cell, line)
+                new_cells.extend(parts.geoms)
+            except Exception:
+                new_cells.append(cell)
+        cells = new_cells
+
+    # Label cells: inside if contains primitive centers
+    prim_xz_pts = [SPoint(p) for p in xz]
+    inside_cells = []
+    for cell in cells:
+        if cell.area < 0.01:
+            continue
+        # Check if any primitive center falls inside this cell
+        if any(cell.contains(p) for p in prim_xz_pts):
+            inside_cells.append(cell)
+
+    if not inside_cells:
+        return None
+
+    footprint = unary_union(inside_cells)
+
+    # Handle MultiPolygon: keep largest
+    if footprint.geom_type == 'MultiPolygon':
+        footprint = max(footprint.geoms, key=lambda g: g.area)
+
+    if footprint.geom_type != 'Polygon' or footprint.area < 0.1:
+        return None
+
+    # Simplify to remove redundant collinear vertices
+    footprint = footprint.simplify(0.01, preserve_topology=True)
+
+    return footprint
+
+
+def build_footprint_solid(groups, prim_centers, hs_tol=0.05, **kwargs):
+    """Build building solid from wall/roof/ground groups.
+
+    Uses 2D plane arrangement for footprint extraction (handles non-convex).
+    Falls back to convex polytope for pitched roofs.
+
+    Returns: {group_idx: polygon_vertices_ndarray} or None
+    """
+    # Identify roof and ground groups
+    roof_groups = [(i, g) for i, g in enumerate(groups)
+                   if g['class'] == 1 and not g.get('is_bbox')]
+    ground_groups = [(i, g) for i, g in enumerate(groups)
+                     if g.get('is_ground')]
+
+    if not roof_groups or not ground_groups:
+        return build_convex_polytope(groups, prim_centers, hs_tol=hs_tol)
+
+    # Check if building has flat roof (all roof normals nearly identical)
+    roof_normals = [g['plane_normal'] for _, g in roof_groups]
+    if len(roof_normals) == 1:
+        all_flat = abs(roof_normals[0][1]) > 0.85
+    else:
+        all_flat = all(abs(np.dot(roof_normals[i], roof_normals[j])) > 0.95
+                       for i in range(len(roof_normals))
+                       for j in range(i + 1, len(roof_normals)))
+        all_flat = all_flat and all(abs(n[1]) > 0.85 for n in roof_normals)
+
+    if not all_flat:
+        return build_convex_polytope(groups, prim_centers, hs_tol=hs_tol)
+
+    # Extract footprint via plane arrangement
+    footprint_poly = _arrangement_footprint(groups, prim_centers)
+    if footprint_poly is None:
+        return build_convex_polytope(groups, prim_centers, hs_tol=hs_tol)
+
+    footprint = np.array(footprint_poly.exterior.coords[:-1])
+    n_fp = len(footprint)
+
+    # Heights from plane equations: y = d / n_y
+    roof_g = max(roof_groups, key=lambda x: x[1].get('area', 0))
+    roof_ny = roof_g[1]['plane_normal'][1]
+    roof_y = roof_g[1]['plane_d'] / roof_ny if abs(roof_ny) > 0.1 else roof_g[1]['center'][1]
+
+    ground_ny = ground_groups[0][1]['plane_normal'][1]
+    ground_y = ground_groups[0][1]['plane_d'] / ground_ny if abs(ground_ny) > 0.1 else ground_groups[0][1]['center'][1]
+
+    # Build 3D vertices
+    verts_top = [np.array([pt[0], roof_y, pt[1]]) for pt in footprint]
+    verts_bot = [np.array([pt[0], ground_y, pt[1]]) for pt in footprint]
+    all_verts = verts_top + verts_bot
+
+    polygons = {}
+
+    # Roof face: reversed winding for outward normal (-Y in COLMAP = up)
+    polygons[roof_g[0]] = np.array(verts_top[::-1])
+
+    # Ground face: normal winding for outward (+Y in COLMAP = down)
+    polygons[ground_groups[0][0]] = np.array(verts_bot)
+
+    # Wall faces: each footprint edge → vertical quad
+    wall_groups_list = [(i, g) for i, g in enumerate(groups)
+                        if g['class'] == 2 and not g.get('is_bbox')]
+
+    for ei in range(n_fp):
+        ej = (ei + 1) % n_fp
+        quad = np.array([verts_top[ei], verts_top[ej],
+                         verts_bot[ej], verts_bot[ei]])
+
+        # Match to wall group by outward normal
+        edge_xz = footprint[ej] - footprint[ei]
+        wn_xz = np.array([edge_xz[1], -edge_xz[0]])
+        wn_xz /= np.linalg.norm(wn_xz) + 1e-12
+        mid = (footprint[ei] + footprint[ej]) / 2
+        centroid = footprint.mean(0)
+        if np.dot(wn_xz, mid - centroid) < 0:
+            wn_xz = -wn_xz
+        wn_3d = np.array([wn_xz[0], 0, wn_xz[1]])
+
+        best_gi, best_cos = -1, -1
+        for wi, wg in wall_groups_list:
+            cos = float(np.dot(wn_3d, wg['plane_normal']))
+            if cos > best_cos:
+                best_cos = cos
+                best_gi = wi
+
+        if best_gi >= 0 and best_cos > 0.5 and best_gi not in polygons:
+            polygons[best_gi] = quad
+        else:
+            vgi = len(groups)
+            groups.append({
+                'plane_normal': wn_3d, 'plane_d': 0, 'class': 2,
+                'prim_ids': [], 'center': quad.mean(0), 'area': 0,
+                'is_bbox': True,
+            })
+            polygons[vgi] = quad
+
+    print(f"    Footprint: {n_fp} corners, {len(polygons)} faces")
+    return polygons
 
 
 def build_convex_polytope(groups, prim_centers, hs_tol=0.05, plane_tol=0.1,
@@ -438,7 +763,7 @@ def build_cityjson(building_id, groups, polygons, out_dir):
         sem_surfaces.append({"type": sd['type']})
         sem_values.append(i)
 
-    building_name = f"building_{building_id:03d}"
+    building_name = f"building_{building_id:03d}" if isinstance(building_id, int) else f"building_{building_id}"
     cityjson = {
         "type": "CityJSON",
         "version": "2.0",
@@ -447,7 +772,7 @@ def build_cityjson(building_id, groups, polygons, out_dir):
             building_name: {
                 "type": "Building",
                 "attributes": {
-                    "building_id": int(building_id),
+                    "building_id": building_id if isinstance(building_id, int) else str(building_id),
                     "n_surfaces": len(surface_data),
                     "signed_volume": float(vol),
                 },
@@ -465,13 +790,12 @@ def build_cityjson(building_id, groups, polygons, out_dir):
         "vertices": adjusted_verts,
     }
 
-    bdir = os.path.join(out_dir, f"building_{building_id:03d}")
-    os.makedirs(bdir, exist_ok=True)
-    cj_path = os.path.join(bdir, "building.city.json")
+    os.makedirs(out_dir, exist_ok=True)
+    cj_path = os.path.join(out_dir, "building.city.json")
     with open(cj_path, 'w') as f:
         json.dump(cityjson, f, indent=2)
 
-    save_lod2_ply(os.path.join(bdir, "lod2.ply"), surface_data, all_verts,
+    save_lod2_ply(os.path.join(out_dir, "lod2.ply"), surface_data, all_verts,
                   scale, translate)
 
     # Edge sharing diagnostics
@@ -488,7 +812,7 @@ def build_cityjson(building_id, groups, polygons, out_dir):
     n_nonmanifold = sum(1 for faces in edges.values() if len(faces) > 2)
 
     return {
-        'building_id': int(building_id),
+        'building_id': building_id if isinstance(building_id, int) else str(building_id),
         'n_surfaces': len(surface_data),
         'n_vertices': len(all_verts),
         'signed_volume': float(vol),
