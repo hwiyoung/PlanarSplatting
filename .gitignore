@@ -18,3 +18,5 @@ results/**/*.ply
 results/**/*.png
 results/**/*.npz
 results/**/run_log.txt
+results/**/3dbag_raw/
+results/**/*.city.json
